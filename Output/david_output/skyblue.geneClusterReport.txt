@@ -1,0 +1,15 @@
+Gene Cluster 1	EnrichmentScore: 2.2281049878931487
+LOCUS_TAG	Gene Name
+Rv2757c	ribonuclease VapC21(vapC21)
+Rv0665	ribonuclease VapC8(vapC8)
+Rv2103c	ribonuclease VapC37(vapC37)
+Rv2872	ribonuclease VapC43(vapC43)
+Rv2494	ribonuclease VapC38(vapC38)
+Rv1242	ribonuclease VapC33(vapC33)
+Gene Cluster 2	EnrichmentScore: 0.1969290837172398
+LOCUS_TAG	Gene Name
+Rv2437	transmembrane protein(Rv2437)
+Rv3635	transmembrane protein(Rv3635)
+Rv0249c	succinate dehydrogenase membrane anchor subunit(Rv0249c)
+Rv2320c	cationic amino acid transporter permease RocE(rocE)
+Rv2571c	transmembrane protein(Rv2571c)

@@ -1,0 +1,6 @@
+Gene Cluster 1	EnrichmentScore: 0.5312389535237371
+LOCUS_TAG	Gene Name
+Rv0312	hypothetical protein(Rv0312)
+Rv3760	membrane protein(Rv3760)
+Rv0506	membrane protein MmpS2(mmpS2)
+Rv1754c	hypothetical protein(Rv1754c)

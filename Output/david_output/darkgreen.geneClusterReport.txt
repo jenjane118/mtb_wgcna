@@ -1,0 +1,8 @@
+Gene Cluster 1	EnrichmentScore: 0.7909726220837712
+LOCUS_TAG	Gene Name
+Rv1487	hypothetical protein(Rv1487)
+Rv2261c	pseudo(Rv2261c)
+Rv0314c	membrane protein(Rv0314c)
+Rv0218	transmembrane protein(Rv0218)
+Rv1489	hypothetical protein(Rv1489)
+Rv3162c	integral membrane protein(Rv3162c)

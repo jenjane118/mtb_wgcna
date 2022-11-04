@@ -1,0 +1,15 @@
+"Status"	"ERR2103718_sorted"	"ERR2103722_sorted"	"ERR2103723_sorted"
+"1"	"Assigned"	3637089	3312180	3018533
+"2"	"Unassigned_Unmapped"	5604	12451	12650
+"3"	"Unassigned_Read_Type"	0	0	0
+"4"	"Unassigned_Singleton"	0	0	0
+"5"	"Unassigned_MappingQuality"	0	0	0
+"6"	"Unassigned_Chimera"	0	0	0
+"7"	"Unassigned_FragmentLength"	0	0	0
+"8"	"Unassigned_Duplicate"	0	0	0
+"9"	"Unassigned_MultiMapping"	0	0	0
+"10"	"Unassigned_Secondary"	0	0	0
+"11"	"Unassigned_NonSplit"	0	0	0
+"12"	"Unassigned_NoFeatures"	1043043	517005	547217
+"13"	"Unassigned_Overlapping_Length"	0	0	0
+"14"	"Unassigned_Ambiguity"	0	0	0

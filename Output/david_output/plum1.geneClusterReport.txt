@@ -1,0 +1,6 @@
+Gene Cluster 1	EnrichmentScore: 0.554112000492157
+LOCUS_TAG	Gene Name
+Rv2456c	MFS-type transporter(Rv2456c)
+Rv0696	mycofactocin biosynthesis glycosyltransferase MftF(Rv0696)
+Rv2325c	hypothetical protein(Rv2325c)
+Rv2772c	transmembrane protein(Rv2772c)

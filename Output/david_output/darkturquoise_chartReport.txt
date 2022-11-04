@@ -1,0 +1,4 @@
+Category	Term	Count	%	Pvalue	Genes	List Total	Pop Hits	Pop Total	Fold Enrichment	Bonferroni	Benjamini	FDR
+GOTERM_MF_FAT	GO:0003863~3-methyl-2-oxobutanoate dehydrogenase (2-methylpropanoyl-transferring) activity	2	7.6923076923076925	0.007765285909836524	RV2497C, RV2496C	10	2	2314	231.4	0.41145406810082363	0.5280394418688836	52.803944186888366
+GOTERM_MF_FAT	GO:0016624~oxidoreductase activity, acting on the aldehyde or oxo group of donors, disulfide as acceptor	2	7.6923076923076925	0.019312729991115097	RV2497C, RV2496C	10	5	2314	92.56	0.7344926323139602	0.6566328196979133	65.66328196979133
+GOTERM_MF_FAT	GO:0016903~oxidoreductase activity, acting on the aldehyde or oxo group of donors	2	7.6923076923076925	0.09685595804589778	RV2497C, RV2496C	10	26	2314	17.8	0.9990194326157494	1.0	100.0

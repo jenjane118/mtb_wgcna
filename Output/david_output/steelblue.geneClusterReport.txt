@@ -1,0 +1,8 @@
+Gene Cluster 1	EnrichmentScore: 0.2136599871318564
+LOCUS_TAG	Gene Name
+Rv0048c	membrane protein(Rv0048c)
+Rv1648	transmembrane protein(Rv1648)
+Rv2698	transmembrane protein(Rv2698)
+Rv2700	hypothetical protein(Rv2700)
+Rv2203	membrane protein(Rv2203)
+Rv1115	hypothetical protein(Rv1115)

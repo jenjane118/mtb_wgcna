@@ -1,0 +1,10 @@
+Gene Cluster 1	EnrichmentScore: 0.34561602520212803
+LOCUS_TAG	Gene Name
+Rv3437	transmembrane protein(Rv3437)
+Rv0897c	oxidoreductase(Rv0897c)
+Rv0473	transmembrane protein(Rv0473)
+Rv1748	hypothetical protein(Rv1748)
+Rv0874c	hypothetical protein(Rv0874c)
+Rv0476	transmembrane protein(Rv0476)
+Rv2091c	membrane protein(Rv2091c)
+Rv0615	integral membrane protein(Rv0615)

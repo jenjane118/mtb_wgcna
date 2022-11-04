@@ -1,0 +1,9 @@
+Gene Cluster 1	EnrichmentScore: 0.11680388133859894
+LOCUS_TAG	Gene Name
+Rv1343c	lipoprotein LprD(lprD)
+Rv3403c	hypothetical protein(Rv3403c)
+Rv1342c	hypothetical protein(Rv1342c)
+Rv0450c	transmembrane transport protein MmpL4(mmpL4)
+Rv2617c	transmembrane protein(Rv2617c)
+Rv0451c	membrane protein MmpS4(mmpS4)
+Rv2620c	transmembrane protein(Rv2620c)

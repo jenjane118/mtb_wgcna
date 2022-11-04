@@ -1,0 +1,7 @@
+Gene Cluster 1	EnrichmentScore: 0.48711764910221156
+LOCUS_TAG	Gene Name
+Rv1234	transmembrane protein(Rv1234)
+Rv1616	hypothetical protein(Rv1616)
+Rv1217c	tetronasin ABC transporter integral membrane protein(Rv1217c)
+Rv0677c	membrane protein MmpS5(mmpS5)
+Rv0676c	transmembrane transport protein MmpL5(mmpL5)

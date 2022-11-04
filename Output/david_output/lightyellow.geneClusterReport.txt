@@ -1,0 +1,7 @@
+Gene Cluster 1	EnrichmentScore: 0.1369672309829714
+LOCUS_TAG	Gene Name
+Rv2721c	hypothetical protein(Rv2721c)
+Rv0996	transmembrane protein(Rv0996)
+Rv1233c	hypothetical protein(Rv1233c)
+Rv1761c	hypothetical protein(Rv1761c)
+Rv2293c	hypothetical protein(Rv2293c)

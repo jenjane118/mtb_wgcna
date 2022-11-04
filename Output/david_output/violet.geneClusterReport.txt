@@ -1,0 +1,7 @@
+Gene Cluster 1	EnrichmentScore: 3.2270745681889426
+LOCUS_TAG	Gene Name
+Rv2853	PE-PGRS family protein PE_PGRS48(PE_PGRS48)
+Rv0297	PE-PGRS family protein PE_PGRS5(PE_PGRS5)
+Rv2340c	PE-PGRS family protein PE_PGRS39(PE_PGRS39)
+Rv3507	PE-PGRS family protein PE_PGRS53(PE_PGRS53)
+Rv0872c	PE-PGRS family protein PE_PGRS15(PE_PGRS15)

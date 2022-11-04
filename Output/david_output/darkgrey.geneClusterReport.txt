@@ -1,0 +1,9 @@
+Gene Cluster 1	EnrichmentScore: 0.14186470175594312
+LOCUS_TAG	Gene Name
+Rv0361	membrane protein(Rv0361)
+Rv1209	hypothetical protein(Rv1209)
+Rv3103c	hypothetical protein(Rv3103c)
+Rv3484	hypothetical protein(Rv3484)
+Rv1081c	membrane protein(Rv1081c)
+Rv0083	oxidoreductase(Rv0083)
+Rv3483c	hypothetical protein(Rv3483c)

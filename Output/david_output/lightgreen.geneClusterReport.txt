@@ -1,0 +1,12 @@
+Gene Cluster 1	EnrichmentScore: 0.8256290572090429
+LOCUS_TAG	Gene Name
+Rv2169c	transmembrane protein(Rv2169c)
+Rv3289c	transmembrane protein(Rv3289c)
+Rv2146c	transmembrane protein(Rv2146c)
+Rv3288c	hypothetical protein(usfY)
+Rv2709	transmembrane protein(Rv2709)
+Rv1419	hypothetical protein(Rv1419)
+Rv2686c	antibiotic ABC transporter permease(Rv2686c)
+Rv3217c	integral membrane protein(Rv3217c)
+Rv1100	hypothetical protein(Rv1100)
+Rv2044c	hypothetical protein(Rv2044c)

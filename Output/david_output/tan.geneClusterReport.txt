@@ -1,0 +1,14 @@
+Gene Cluster 1	EnrichmentScore: 0.49377664393423665
+LOCUS_TAG	Gene Name
+Rv0227c	membrane protein(Rv0227c)
+Rv2468A	hypothetical protein(Rv2468A)
+Rv0072	glutamine ABC transporter permease(Rv0072)
+Rv0431	tuberculin-like peptide(Rv0431)
+Rv3669	transmembrane protein(Rv3669)
+Rv0177	Mce associated protein(Rv0177)
+Rv3630	integral membrane protein(Rv3630)
+Rv3434c	transmembrane protein(Rv3434c)
+Rv0178	Mce associated membrane protein(Rv0178)
+Rv3921c	membrane protein insertase YidC(Rv3921c)
+Rv1565c	acyltransferase(Rv1565c)
+Rv0732	preprotein translocase SecY(secY)

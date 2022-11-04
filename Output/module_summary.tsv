@@ -1,0 +1,55 @@
+moduleColor	n_cds	n_utr	adj_pval_utr	n_ncrna	n_srna	adj_pval_srna	n_total	fun_cats	term	name	COG_term	GO_BP_name
+turquoise	385	133	0.999999999997033	9	239	3.590073324509616e-21	766		NA	NA	NA	NA
+blue	292	241	6.790793279775786e-21	1	39	1	573	cell wall and cell processes	mtu00190	Oxidative phosphorylation	NA	transmembrane transport
+brown	275	79	0.999999999997033	1	45	1	400	information pathways	NA	NA	NA	NA
+yellow	186	42	0.999999999997033	1	155	1.1646069447454047e-23	384	conserved hypotheticals, insertion seqs and phages	NA	NA	NA	NA
+green	181	72	0.999999999997033	1	84	0.01105501859972485	338	virulence, detoxification, adaptation, regulatory proteins	NA	NA	Transcription	regulation of gene expression, regulation of nucleobase-containing compound metabolic process, regulation of cellular macromolecule biosynthetic process, regulation of macromolecule biosynthetic process, regulation of nucleic acid-templated transcription, regulation of transcription, DNA-templated, regulation of RNA biosynthetic process, regulation of RNA metabolic process, nucleic acid-templated transcription, RNA biosynthetic process, nucleobase-containing compound biosynthetic process, RNA metabolic process, response to metal ion, response to inorganic substance
+red	92	36	0.999999999997033	2	206	3.5385074155766073e-71	336		NA	NA	NA	NA
+black	191	111	0.00116221410221271	1	31	1	334	virulence, detoxification, adaptation	NA	NA	NA	growth, regulation of growth
+pink	216	80	0.6796127227879448	0	14	1	310	information pathways	NA	NA	NA	NA
+magenta	181	50	0.999999999997033	0	9	1	240	information pathways, intermediary metabolism and respiration	NA	NA	NA	NA
+purple	113	40	0.999999999997033	1	15	1	169	virulence, detoxification, adaptation, insertion seqs and phages	NA	NA	NA	regulation of gene expression
+greenyellow	118	19	0.999999999997033	0	28	1	165	virulence, detoxification, adaptation, insertion seqs and phages	NA	NA	NA	growth, regulation of growth, positive regulation of growth
+tan	116	40	0.977691673856868	0	6	1	162	information pathways	NA	NA	NA	NA
+salmon	67	56	0.00558579420223312	1	32	0.947891819234565	156		NA	NA	NA	immune effector process, response to virus, defense response to virus, defense response to other organism, viral process, defense response, multi-organism cellular process
+cyan	76	54	0.00351021329455097	1	15	1	146	conserved hypotheticals	NA	NA	NA	response to hypoxia, response to decreased oxygen levels, response to oxygen levels, response to abiotic stimulus
+midnightblue	89	48	0.04091263547063074	0	6	1	143		NA	NA	NA	NA
+lightcyan	82	10	0.999999999997033	0	40	0.00659817211450291	132	insertion seqs and phages	NA	NA	NA	NA
+grey60	82	30	0.8854145736419036	0	6	1	118	lipid metabolism	mtu01053, mtu00220	Biosynthesis of siderophore group nonribosomal peptides, Arginine biosynthesis	NA	nonribosomal peptide biosynthetic process, secondary metabolite biosynthetic process, siderophore metabolic process, siderophore biosynthetic process, secondary metabolic process, cellular amino acid metabolic process, alpha-amino acid metabolic process, arginine biosynthetic process, siderophore biosynthetic process from catechol, catechol-containing compound metabolic process, arginine metabolic process, cofactor biosynthetic process, carboxylic acid metabolic process, alpha-amino acid biosynthetic process, oxoacid metabolic process, organic acid metabolic process, cellular response to iron ion starvation, cellular amino acid biosynthetic process, glutamine family amino acid biosynthetic process, organonitrogen compound biosynthetic process, phenol-containing compound metabolic process, response to host iron concentration, cofactor metabolic process, carboxylic acid biosynthetic process, organic acid biosynthetic process, glutamine family amino acid metabolic process
+lightgreen	63	36	0.17877128182946753	1	15	1	115		NA	NA	NA	NA
+lightyellow	74	36	0.1598960062086939	0	3	1	113		NA	NA	NA	NA
+royalblue	67	27	0.6231247392038041	0	3	1	97	lipid metabolism	mtu00984, mtu01120, mtu01220, mtu00622, mtu00621	Steroid degradation, Microbial metabolism in diverse environments, Degradation of aromatic compounds, Xylene degradation, Dioxin degradation	NA	steroid metabolic process, cholesterol metabolic process, secondary alcohol metabolic process, cholesterol catabolic process, sterol catabolic process, sterol metabolic process, steroid catabolic process, organic hydroxy compound catabolic process, alcohol catabolic process, lipid catabolic process, alcohol metabolic process, organic cyclic compound catabolic process, organic hydroxy compound metabolic process, small molecule catabolic process, lipid metabolic process, single-organism catabolic process, steroid biosynthetic process, aromatic compound catabolic process
+darkred	74	19	0.999999999997033	0	2	1	95	PE/PPE	NA	NA	NA	NA
+darkgreen	47	40	7.353037917796252e-4	1	5	1	93		mtu00620, mtu02020	Pyruvate metabolism, Two-component system	NA	NA
+darkturquoise	28	12	0.999999999997033	2	49	1.2987538058215406e-14	91	PE/PPE	NA	NA	NA	NA
+darkgrey	70	12	0.999999999997033	1	4	1	87		NA	NA	NA	NA
+orange	39	37	7.353037917796252e-4	1	7	1	84		NA	NA	NA	NA
+darkorange	59	10	0.999999999997033	0	13	1	82	information pathways	NA	NA	NA	NA
+white	48	17	0.999999999997033	0	12	1	77		NA	NA	NA	NA
+skyblue	41	24	0.17877128182946753	0	7	1	72	virulence, detoxification, adaptation	NA	NA	NA	NA
+saddlebrown	40	20	0.5099365463864666	1	6	1	67	lipid metabolism	NA	NA	Lipid metabolism	small molecule biosynthetic process, amino-acid betaine metabolic process, cellular modified histidine metabolic process, ergothioneine biosynthetic process, cellular modified histidine biosynthetic process, amino-acid betaine biosynthetic process, ergothioneine metabolic process, carboxylic acid biosynthetic process, organic acid biosynthetic process, N-alpha,N-alpha,N-alpha-trimethyl-L-histidine metabolic process, histidine catabolic process, imidazole-containing compound catabolic process, ergothioneine biosynthesis from histidine via N-alpha,N-alpha,N-alpha-trimethyl-L-histidine
+steelblue	44	12	0.999999999997033	0	10	1	66		mtu00920	Sulfur metabolism	NA	NA
+paleturquoise	40	6	0.999999999997033	1	17	0.2768620252972302	64		NA	NA	NA	NA
+violet	44	17	0.8315394967823178	1	2	1	64	lipid metabolism, PE/PPE	NA	NA	NA	NA
+darkolivegreen	38	17	0.6796127227879448	0	5	1	60	virulence, detoxification, adaptation	NA	NA	NA	NA
+darkmagenta	22	22	0.06484180222801304	0	14	0.8796301462211368	58		NA	NA	NA	NA
+sienna3	38	11	0.999999999997033	0	7	1	56		NA	NA	NA	NA
+yellowgreen	30	23	0.02457865539866243	0	3	1	56		NA	NA	NA	NA
+skyblue3	21	23	0.01175385624070506	0	9	1	53	conserved hypotheticals	NA	NA	NA	NA
+plum1	28	16	0.5099365463864666	0	8	1	52		NA	NA	NA	NA
+orangered4	29	10	0.999999999997033	0	12	0.947891819234565	51		NA	NA	NA	NA
+mediumpurple3	33	7	0.999999999997033	0	9	1	49		NA	NA	NA	NA
+grey	24	14	0.5681915760411037	1	7	1	46		NA	NA	NA	NA
+ivory	22	10	0.999999999997033	0	10	0.947891819234565	42		NA	NA	NA	NA
+lightcyan1	19	23	5.784493711914468e-4	0	0	1	42	cell wall and cell processes	NA	NA	NA	NA
+lightsteelblue1	30	7	0.999999999997033	1	4	1	42		NA	NA	NA	NA
+floralwhite	5	1	0.999999999997033	0	31	1.748928220128243e-16	37		NA	NA	NA	NA
+darkorange2	19	11	0.5001556372495856	0	3	1	33		NA	NA	NA	NA
+brown4	15	14	0.06063745182638973	0	3	1	32	conserved hypotheticals	NA	NA	NA	NA
+bisque4	22	3	0.999999999997033	0	6	1	31	virulence, detoxification, adaptation	mtu02010	ABC transporters	NA	NA
+darkslateblue	23	4	0.999999999997033	0	4	1	31		NA	NA	NA	NA
+plum2	15	7	0.999999999997033	0	9	0.5808592658163583	31	PE/PPE	NA	NA	NA	NA
+thistle1	16	8	0.7360173784640363	0	3	1	27		NA	NA	NA	NA
+thistle2	23	4	0.999999999997033	0	0	1	27		NA	NA	NA	NA
+salmon4	12	11	0.13763505771476614	0	3	1	26		NA	NA	NA	NA
+palevioletred3	14	3	0.999999999997033	0	8	0.4674205697230998	25		NA	NA	NA	NA

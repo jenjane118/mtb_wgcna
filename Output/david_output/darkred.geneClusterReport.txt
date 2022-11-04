@@ -1,0 +1,10 @@
+Gene Cluster 1	EnrichmentScore: 0.7349872643251878
+LOCUS_TAG	Gene Name
+Rv0290	ESX-3 secretion system protein EccD(eccD3)
+Rv1797	ESX-5 type VII secretion system protein EccE(eccE5)
+Rv0286	PPE family protein PPE4(PPE4)
+Rv3605c	hypothetical protein(Rv3605c)
+Rv1841c	hypothetical protein(Rv1841c)
+Rv0283	ESX-3 secretion system protein EccB3(eccB3)
+Rv0292	ESX-3 secretion system protein EccE(eccE3)
+Rv0284	ESX-3 secretion system protein EccC3(eccC3)

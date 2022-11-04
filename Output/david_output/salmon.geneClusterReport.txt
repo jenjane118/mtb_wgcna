@@ -1,0 +1,10 @@
+Gene Cluster 1	EnrichmentScore: 0.16130410709196977
+LOCUS_TAG	Gene Name
+Rv0900	membrane protein(arfB)
+Rv1624c	membrane protein(Rv1624c)
+Rv2846c	MFS-type transporter EfpA(efpA)
+Rv1139c	hypothetical protein(Rv1139c)
+Rv0961	integral membrane protein(Rv0961)
+Rv3346c	transmembrane protein(Rv3346c)
+Rv2723	integral membrane protein(Rv2723)
+Rv2401A	membrane protein(Rv2401A)

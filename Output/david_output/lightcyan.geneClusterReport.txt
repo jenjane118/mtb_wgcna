@@ -1,0 +1,7 @@
+Gene Cluster 1	EnrichmentScore: 2.4654654620631855
+LOCUS_TAG	Gene Name
+Rv1047	transposase(Rv1047)
+Rv1199c	insertion sequence element IS1081 transposase(Rv1199c)
+Rv3115	transposase(Rv3115)
+Rv2512c	insertion sequence element IS1081 transposase(Rv2512c)
+Rv3023c	transposase(Rv3023c)

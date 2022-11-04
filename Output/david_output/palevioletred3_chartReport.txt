@@ -1,0 +1,2 @@
+Category	Term	Count	%	Pvalue	Genes	List Total	Pop Hits	Pop Total	Fold Enrichment	Bonferroni	Benjamini	FDR
+GOTERM_MF_FAT	GO:0016746~transferase activity, transferring acyl groups	3	21.428571428571427	0.053975239691643404	RV1248C, RV3034C, RV2669	7	152	2314	6.524436090225563	0.9176596610630177	1.0	100.0

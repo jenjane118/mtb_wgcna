@@ -1,0 +1,2 @@
+Category	Term	Count	%	Pvalue	Genes	List Total	Pop Hits	Pop Total	Fold Enrichment	Bonferroni	Benjamini	FDR
+GOTERM_BP_FAT	GO:1901566~organonitrogen compound biosynthetic process	6	21.428571428571427	0.06696174584763262	RV3702C, RV0535, RV1643, RV2156C, RV0695, RV0509	12	429	1986	2.3146853146853146	0.9999993700781132	1.0	100.0

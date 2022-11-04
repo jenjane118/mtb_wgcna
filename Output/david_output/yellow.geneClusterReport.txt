@@ -1,0 +1,25 @@
+Gene Cluster 1	EnrichmentScore: 1.459524744341018
+LOCUS_TAG	Gene Name
+Rv2549c	ribonuclease VapC20(vapC20)
+Rv2231A	ribonuclease VapC16(vapC16)
+Rv0301	ribonuclease VapC2(vapC2)
+Rv0617	ribonuclease VapC29(vapC29)
+Rv3180c	ribonuclease VapC45(Rv3180c)
+Rv2010	ribonuclease VapC15(vapC15)
+Rv2863	ribonuclease VapC23(vapC23)
+Gene Cluster 2	EnrichmentScore: 0.14377387932036859
+LOCUS_TAG	Gene Name
+Rv0841	transmembrane protein(Rv0841)
+Rv2180c	integral membrane protein(Rv2180c)
+Rv0537c	integral membrane protein(Rv0537c)
+Rv2551c	hypothetical protein(Rv2551c)
+Rv0202c	transmembrane transport protein MmpL11(mmpL11)
+Rv3448	ESX-4 secretion system protein EccD4(eccD4)
+Rv2307c	hypothetical protein(Rv2307c)
+Rv2075c	hypothetical protein(Rv2075c)
+Rv3450c	ESX-4 secretion system protein EccB4(eccB4)
+Rv2254c	integral membrane protein(Rv2254c)
+Rv1430	PE family protein PE16(PE16)
+Rv2076c	hypothetical protein(Rv2076c)
+Rv3069	fluoride ion transporter CrcB(Rv3069)
+Rv1510	hypothetical protein(Rv1510)

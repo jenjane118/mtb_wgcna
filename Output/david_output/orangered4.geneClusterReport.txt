@@ -1,0 +1,7 @@
+Gene Cluster 1	EnrichmentScore: 0.4062245076675992
+LOCUS_TAG	Gene Name
+Rv3770c	hypothetical protein(Rv3770c)
+Rv3481c	integral membrane protein(Rv3481c)
+Rv2144c	transmembrane protein(Rv2144c)
+Rv2806	membrane protein(Rv2806)
+Rv3694c	transmembrane protein(Rv3694c)

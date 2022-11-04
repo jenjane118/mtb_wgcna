@@ -1,0 +1,48 @@
+Gene Cluster 4	EnrichmentScore: 1.2663435361307687
+LOCUS_TAG	Gene Name
+Rv3211	ATP-dependent RNA helicase RhlE(rhlE)
+Rv2092c	ATP-dependent DNA helicase HelY(helY)
+Rv0861c	DNA helicase Ercc3(ercc3)
+Rv3296	ATP-dependent helicase(lhr)
+Gene Cluster 2	EnrichmentScore: 1.071931513128487
+LOCUS_TAG	Gene Name
+Rv2933	phthiocerol synthesis polyketide synthase type I PpsC(ppsC)
+Rv2940c	multifunctional mycocerosic acid synthase(mas)
+Rv2932	phthiocerol synthesis polyketide synthase type I PpsB(ppsB)
+Rv2946c	polyketide synthase(pks1)
+Rv2934	phthiocerol synthesis polyketide synthase type I PpsD(ppsD)
+Gene Cluster 1	EnrichmentScore: 0.7706384936022355
+LOCUS_TAG	Gene Name
+Rv3074	hypothetical protein(Rv3074)
+Rv0515	hypothetical protein(Rv0515)
+Rv2100	hypothetical protein(Rv2100)
+Rv0336	hypothetical protein(Rv0336)
+Gene Cluster 3	EnrichmentScore: 0.5847903749812535
+LOCUS_TAG	Gene Name
+Rv1071c	enoyl-CoA hydratase EchA9(echA9)
+Rv0905	enoyl-CoA hydratase EchA6(echA6)
+Rv2679	enoyl-CoA hydratase EchA15(echA15)
+Rv1070c	enoyl-CoA hydratase EchA8(echA8)
+Gene Cluster 5	EnrichmentScore: 0.0004167308511647359
+LOCUS_TAG	Gene Name
+Rv3657c	membrane protein(Rv3657c)
+Rv0625c	transmembrane protein(Rv0625c)
+Rv0383c	hypothetical protein(Rv0383c)
+Rv2719c	membrane protein(Rv2719c)
+Rv0007	membrane protein(Rv0007)
+Rv1085c	hemolysin-like protein(Rv1085c)
+Rv2208	adenosylcobinamide-GDP ribazoletransferase(cobS)
+Rv3706c	hypothetical protein(Rv3706c)
+Rv1903	membrane protein(Rv1903)
+Rv2240c	hypothetical protein(Rv2240c)
+Rv2198c	membrane protein MmpS3(mmpS3)
+Rv0531	membrane protein(Rv0531)
+Rv0143c	transmembrane protein(Rv0143c)
+Rv2235	transmembrane protein(Rv2235)
+Rv1858	molybdenum ABC transporter permease ModB(modB)
+Rv3212	hypothetical protein(Rv3212)
+Rv0228	acyltransferase(Rv0228)
+Rv0901	membrane protein(arfC)
+Rv2980	hypothetical protein(Rv2980)
+Rv0199	membrane protein(Rv0199)
+Rv3026c	hypothetical protein(Rv3026c)

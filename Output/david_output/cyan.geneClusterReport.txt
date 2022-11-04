@@ -1,0 +1,16 @@
+Gene Cluster 1	EnrichmentScore: 3.681401552624047
+LOCUS_TAG	Gene Name
+Rv2005c	universal stress protein(Rv2005c)
+Rv1996	universal stress protein(Rv1996)
+Rv2624c	universal stress protein(Rv2624c)
+Rv2623	universal stress protein(TB31.7)
+Rv3134c	universal stress protein(Rv3134c)
+Gene Cluster 2	EnrichmentScore: 0.49655221309629805
+LOCUS_TAG	Gene Name
+Rv1737c	nitrate/nitrite transporter(narK2)
+Rv3166c	hypothetical protein(Rv3166c)
+Rv1171	hypothetical protein(Rv1171)
+Rv1735c	membrane protein(Rv1735c)
+Rv1145	transmembrane transport protein(Rv1145)
+Rv2081c	transmembrane protein(Rv2081c)
+Rv1733c	transmembrane protein(Rv1733c)

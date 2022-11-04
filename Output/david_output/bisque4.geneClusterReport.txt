@@ -1,0 +1,13 @@
+Gene Cluster 1	EnrichmentScore: 1.6393299973887452
+LOCUS_TAG	Gene Name
+Rv1964	integral membrane protein(yrbE3A)
+Rv1965	integral membrane protein(yrbE3B)
+Rv0621	membrane protein(Rv0621)
+Rv1811	Mg2+ transport P-type ATPase MgtC(mgtC)
+Rv1966	Mce family protein Mce3A(mce3A)
+Rv1967	Mce family protein Mce3B(mce3B)
+Rv1968	Mce family protein Mce3C(mce3C)
+Rv0622	membrane protein(Rv0622)
+Rv1970	Mce family lipoprotein LprM(lprM)
+Rv1971	Mce family protein Mce3F(mce3F)
+Rv1972	Mce associated membrane protein(Rv1972)

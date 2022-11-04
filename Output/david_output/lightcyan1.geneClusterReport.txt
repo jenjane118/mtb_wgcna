@@ -1,0 +1,7 @@
+Gene Cluster 1	EnrichmentScore: 0.8329568498053976
+LOCUS_TAG	Gene Name
+Rv2219	transmembrane protein(Rv2219)
+Rv1619	hypothetical protein(Rv1619)
+Rv2219A	membrane protein(Rv2219A)
+Rv2507	hypothetical protein(Rv2507)
+Rv2306A	pseudo(Rv2306A)

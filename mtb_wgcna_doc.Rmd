@@ -1,0 +1,2161 @@
+---
+title: "Mtb_WGCNA_doc"
+output: html_notebook
+author: "Jennifer Stiens"
+date: "02-11-2022"
+---
+
+
+```{r "knitr config", cache = FALSE, include=FALSE}
+require("here")
+i_am("mtb_wgcna.Rproj")
+
+require("knitr")
+opts_chunk$set(echo = TRUE)
+# Set the root directory to the project directory so all paths
+# that follow will be relative to that directory
+opts_knit$set(root.dir = "../")
+```
+
+```{r setup, include=FALSE}
+library("here")
+library("Rsubread")
+library("Rsamtools")
+library("rtracklayer")
+library("ggplot2")
+library("tools")
+library("DESeq2")
+library("RColorBrewer")
+library("tidyverse")
+
+```
+
+## 1) RNA-seq processing and mapping:
+
+Datasets downloaded from SRA and ArrayExpress. 
+
+4 RNA-seq datasets were used to make network: PRJEB65014, PRJNA390669, PRJNA507615 and PRJNA327080. 
+
+Using trimmomatic and BWA-mem
+
+```{bash, eval=F}
+
+#module load trimmomatic
+
+#script to run trimmomatic for paired end samples:
+#!/bin/bash
+# Runs Trimmomatic in PE mode for all sample names given as arguments
+# Run as:
+# nohup sh trimmomatic_PE.sh directory_of_samples list_of_samples
+
+timestamp=`date "+%Y%m%d-%H%M%S"`
+logfile="run_$timestamp.log"
+exec > $logfile 2>&1  #all output will be logged to logfile
+
+TRIM_EXEC=<PATH TO EXEC FILE>
+DIR=$1
+shift
+
+echo "Running Trimmomatic using executable: $TRIM_EXEC"
+
+for file in `ls $DIR/*_R1_001_trimmed*.fastq.gz` ;
+  do
+    sample=${file/$DIR\/}
+    sample=${sample/_R1_001_trimmed.fastq.gz/}
+    echo "Sample= $sample"
+    java -jar $TRIM_EXEC PE -threads 12 -phred33 \
+               -trimlog "$sample"_trim_report.txt \
+               "$DIR$sample"_R1_001_trimmed.fastq.gz "$DIR$sample"_R2_001_trimmed.fastq.gz \
+               "$sample"_R1.trimmed_paired.fastq.gz "$sample"_R1.trimmed_unpaired.fastq.gz \
+               "$sample"_R2.trimmed_paired.fastq.gz "$sample"_R2.trimmed_unpaired.fastq.gz \
+               <ADAPTER_FILE> \
+               LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
+
+          gzip "$sample"_trim_report.txt
+        done
+        
+```
+
+
+Mapping of reads to reference genome
+
+Script to run BWA_mem for paired end samples:
+
+
+```{bash, map_bwa, eval=F}
+
+#!/bin/bash
+
+# Runs bwa in paired-end  mode 
+
+# Run as:
+# nohup sh BWA_PE.sh directory_of_fastq_files samples
+
+timestamp=`date "+%Y%m%d-%H%M%S"`
+logfile="run_$timestamp.log"
+exec > $logfile 2>&1  #all output will be logged to logfile
+
+dir=$1
+shift
+
+#set location of executables
+SAMTOOLS_EXEC=<PATH TO EXEC>
+
+#set parameters
+genomeFile=<GENOME_FILE> #index files should be there too!
+numProc=8
+
+#extension for fastq files
+suffix1="_R1.trimmed_paired.fastq"
+suffix2="_R2.trimmed_paired.fastq"
+EXT=fastq.gz
+
+for sample in *.${EXT};
+do
+  sample=$(echo $sample | cut -f 1 -d '_')
+  echo "Running bwa on sample $sample (paired-end mode)..."
+
+  pairedFile1="$dir$sample$suffix1".gz
+  if [ -f $pairedFile1 ]
+    then
+      gzip -d $pairedFile1
+      pairedFile1=$dir$sample$suffix1
+  else
+    pairedFile1=$dir$sample$suffix1
+    if [ ! -f $pairedFile1 ]
+      then
+        echo "File not found: $pairedFile1"
+        exit $?
+    fi
+  fi
+  pairedFile2="$dir$sample$suffix2".gz
+  if [ -f $pairedFile2 ]
+    then
+      gzip -d $pairedFile2
+        pairedFile2=$dir$sample$suffix2
+  else
+    pairedFile2=$dir$sample$suffix2
+      if [ ! -f $pairedFile2 ]
+        then
+          echo "File not found: $pairedFile2"
+            exit $?
+      fi
+  fi
+
+  tmpSam="$sample"_pe.sam
+  tmpBam="$sample"_pe.bam
+           finalSortedBam="$sample"_sorted.bam
+   
+  #align 
+  $BWA_EXEC mem -t $numProc $genomeFile $pairedFile1 $pairedFile2 > $tmpSam
+
+  #create bam file
+  $SAMTOOLS_EXEC view $tmpSam -Sbo $tmpBam
+  $SAMTOOLS_EXEC sort $tmpBam -o $finalSortedBam
+  $SAMTOOLS_EXEC index $finalSortedBam
+
+  #cleanup
+  /bin/rm $tmpSam $tmpBam
+  gzip -9 $pairedFile1 $pairedFile2
+done
+
+```
+
+
+## 2) Transcript prediction:
+
+Baerhunter run separately on each dataset with custom set of parameters to get annotations for each dataset. Used in conda environment where all dependencies are already installed.
+
+low/high coverage cutoff for each dataset:
+PRJNA278760: low=100, high=110
+PRJNA327080: low=100, high=110 
+PRJNA390669: low=900, high=950 
+PRJEB65014: low=40, high=45
+
+All other parameters remained the same
+
+Sample script:
+
+```{r run_baerhunter, eval=FALSE}
+
+library(devtools)
+devtools::install_github("irilenia/baerhunter")
+library(baerhunter)
+library(GenomicAlignments)
+library(IRanges)
+library(Rsamtools)
+library(Rsubread)
+
+directory_name<-<PATH_TO_MAPPED_FILES>  
+outfile_name<-"BH_results/PRJNA390669_900.gff3"
+
+# run feature_file_editor to create .gff3 file with new annotations
+feature_file_editor(bam_directory=directory_name,                   
+                    original_annotation_file="Mtb_h37rv.ASM19595v2_AL123456.3.gff3",
+                    annot_file_dir = "/ref_seqs/",
+                    output_file=outfile_name,
+                    original_sRNA_annotation="ncRNA",
+		                low_coverage_cutoff=900, 
+                    high_coverage_cutoff=950,                    
+		                min_sRNA_length=25,
+                    min_UTR_length=25,
+                    paired_end_data=TRUE,
+                    strandedness="reversely_stranded")
+```
+
+These gff files were generated from the 4 datasets:
+
+PRJNA278760_100 
+PRJNA327080_100 
+PRJNA390669_900 
+PRJEB65014_40
+
+## 3) Feature Quantification
+
+Quantify transcript counts for each dataset. Perform TPM normalisation and flag low expression transcripts.
+
+```{r expression_quantification, eval=F}
+
+# Script to iterate through datasets, counting reads, performing tpm normalisation, and flagging features for low expression.
+
+library(baerhunter)
+library(GenomicAlignments)
+library(IRanges)
+library(Rsamtools)
+library(Rsubread)
+
+
+# Read in list of datasets
+directory_list <- scan("dataset_list.txt", what="", sep="\n") 
+for (i in 1: length(directory_list)){
+  dataset_name<-sub(<PATH_TO_DIRECTORY>, "",    directory_list[i])
+  dataset_name<-sub("/BWA_mem/", "", dataset_name)
+  dataset_name <- sub("\\_.*", "", dataset_name)
+  
+  ann_file <- list.files(path = <PATH_TO_NEW_ANNOTATION_FILES>, pattern = dataset_name)
+  
+  # create new directory for results
+  count_dir <- paste("./count_output_", dataset_name, sep="")
+  if (!(dir.exists(count_dir))) {dir.create(count_dir)}
+  count_dir <- paste(count_dir, "/", sep="")
+  
+############### Count reads against putative features ##########################
+
+  count_features(bam_dir=directory_list[i],
+                    annotation_dir= <PATH_TO_NEW_ANNOTATON_FILES>,
+                    annotation_file=ann_file,
+                    output_dir= count_dir,
+                    chromosome_alias_file="chromosome.txt",
+                    strandedness="reversely_stranded",
+                    is_paired_end=TRUE
+                    )
+
+  cat(sprintf("Completed initial count features for dataset: %s \n", dataset_name))
+  
+  
+  ################ TPM normalisation for each dataset #########################
+  
+  # create new directory for tpm results
+  tpm_dir <- paste("./tpm_output_", dataset_name, sep="")
+  if (!(dir.exists(tpm_dir))) {dir.create(tpm_dir)}
+  # Calculate TPM values
+  gff_path = paste(<PATH_TO_NEW_ANNOTATION_FILES>, ann_file, sep="/")
+  output_tpm <- paste(tpm_dir, "/", dataset_name, "_TPM.csv", sep="")
+  tpm_norm<- tpm_normalisation(
+                count_table = paste(count_dir, "/", dataset_name, "_Counts.csv", sep=""), 
+                complete_ann = gff_path, 
+                output_file = output_tpm
+  )
+  
+  
+  
+  cat(sprintf("Completed tpm_normalisation calculations for dataset: %s \n", dataset_name))
+
+
+################## tpm flagging #####################################
+
+tpm_dirs <- c("tpm_output_PRJNA278760", "tpm_output_PRJEB65014", "tpm_output_PRJNA390669", "tpm_output_PRJNA327080")
+
+for (i in 1:length(tpm_dirs)){
+  dataset_name <- sub("tpm_output_", "", tpm_dirs[i])
+  tpm_normed <- paste(tpm_dirs[i], "/", dataset_name, "_TPM.csv", sep="")
+  gff_name <- list.files(path = <PATH_TO_NEW_ANNOTATION_FILES>, pattern = dataset_name)
+  gff_path <- paste(<PATH_TO_NEW_ANNOTATION_FILES>, gff_name, sep="")
+  # flag features according to their TPM values
+  tpm_flagging( tpm_data=tpm_normed, 
+              complete_annotation = gff_path, 
+              output_file=paste(tpm_dir, "/", dataset_name, "_flagged.gff3", sep=""))
+  
+  cat(sprintf("Completed tpm flagging for dataset: %s \n", dataset_name))
+}
+
+```
+
+
+Edit annotation file to eliminate low expression and overlapping predictions. Combine gff files into final combined gff. (BH_results/comb_filtered_ov_30_11.gff3)
+
+Use new combined annotation file to re-count feature expression and make a single counts matrix for all samples for all transcripts.
+
+Make a counts matrix from combination of all counts from datasets.
+
+```{r complete_counts_matrix, eval=F}
+#read in datasets and bind together for single counts matrix
+d1 <- read.delim(here("counts/PRJEB65014_Counts.csv"), header=T)
+d2 <- read.delim(here("counts/PRJNA278760_Counts.csv"), header=T)
+d3 <- read.delim(here("counts/PRJNA327080_Counts.csv"), header = T)
+d4 <- read.delim(here("counts/PRJNA390669_Counts.csv"), header = T)
+
+countdata <- cbind(d1,d2,d3,d4)
+
+nrow(countdata)
+#7046
+dim(countdata)
+
+#save coundata as R object
+saveRDS(countdata, here("R_data/raw_count_matrix.RData"))
+#write table of count matrix (has gene names as row names)
+write.csv(countdata, here("Output/raw_count_matrix.csv"), quote=F, row.names = T)
+
+```
+
+
+## 4) Normalisation, transformation and batch correction
+
+Make DESeq dataset and check for low expression, Normalise for sequencing depth using DESeq2 normalisation
+
+```{r deseq2_normalisation, eval=F}
+#sequencing depth normalisation
+library(DESeq2)
+#calculate size factor
+dds_filtered<-estimateSizeFactors(dds_filtered)
+sizeFactors(dds_filtered)
+
+#retrieve normalised read counts
+counts_normalized<-counts(dds_filtered, normalized=TRUE)
+class(counts_normalized)
+#sum of depth after normalization
+colSums(counts(dds_filtered, normalized=F))
+
+```
+
+Look at normalisation comparison with boxplots
+
+
+```{r normalisation_boxplot, eval=F}
+
+library(DESeq2)
+library(viridis)
+
+#boxplot for normalised data (untransformed)
+#boxplot for original data 
+dds.untransformed <- assay(dds_filtered)
+colnames(dds.untransformed)<-colnames(dds_filtered)
+study_colors = c(rep("#440154FF",3),rep("#31688EFF",22),rep("#FDE725FF",15),rep("#35B779FF",12))
+
+par(cex.axis=0.5) 
+par(mar=c(4,2,1,1))
+study_colors = c(rep("#440154FF",3),rep("#FDE725FF",15),rep("#31688EFF",22),rep("#35B779FF",12))
+norm_boxplot <- boxplot(dds.untransformed, 
+                        PchCex =0.01,
+                        axes=TRUE,
+                        las=2,
+                        col=study_colors, 
+                        ylim = c(0,4500),
+                        outline =TRUE,
+                        outcex=0.35,
+                        main="non_normalized data")
+legend("topleft", legend=c("E-MTAB-6011", "GEO:GSE67035", "GEO:GSE83814", "GEO:GSE100097"), 
+               col = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"), 
+               fill = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"),
+               cex = 0.50, 
+               pt.cex = 1)
+
+#boxplot for normalised data 
+par(cex.axis=0.5) 
+par(mar=c(4,2,1,1))
+study_colors = c(rep("#440154FF",3),rep("#31688EFF",22),rep("#FDE725FF",15),rep("#35B779FF",12))
+norm_boxplot <- boxplot(counts_normalized, 
+                        PchCex =0.01,
+                        axes=TRUE,
+                        las=2,
+                        col=study_colors, 
+                        ylim = c(0,4500),
+                        outline =TRUE,
+                        outcex=0.35,
+                        main="deseq normalized, no transformation")
+legend("topright", legend=c("E-MTAB-6011", "GEO:GSE67035", "GEO:GSE83814", "GEO:GSE100097"), 
+               col = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"), 
+               fill = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"),
+               cex = 0.75, 
+               pt.cex = 1)
+
+```
+
+Test log2 transformation for comparison
+
+```{r log2_transformation, eval=F}
+
+library(DESeq2)
+library(viridis)
+
+#The argument normalized equals true, divides each column by its size factor.
+# with FALSE non-normalised
+# pseudocount of 1
+logcounts <- log2( counts(dds_filtered, normalized=FALSE) + 1 )
+
+#boxplot for log-normalised data 
+par(cex.axis=0.5) 
+par(mar=c(4,5,1,1))
+study_colors = c(rep("#440154FF",3),rep("#31688EFF",22),rep("#FDE725FF",15),rep("#35B779FF",12))
+log_boxplot <- boxplot(logcounts, 
+                        PchCex =0.01,
+                        axes=TRUE,
+                        #ylab=c("log2 normalized counts"),
+                        las=2,
+                        col=study_colors, 
+                        outline =TRUE,
+                        outcex=0.35,
+                        main="log2 normalized")
+mtext(expression(paste( plain("normalized counts"))),side=2,line=3,padj=1,at=10,cex=0.75)
+legend("topright", legend=c("E-MTAB-6011", "GEO:GSE67035", "GEO:GSE83814", "GEO:GSE100097"), 
+               col = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"), 
+               fill = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"),
+               cex = 0.35, 
+               pt.cex = 1)
+
+```
+
+
+Rlog transformation
+
+
+```{r rlog_transf_control, message=FALSE}
+
+library(DESeq2)
+# use raw count data, not normalised for sequencing depth
+
+# rlog blind=T
+rlog_control<-rlog(dds_filtered)
+# assay() creates summarized experiment ('se') which is matrix where rows are genetic features and columns are samples
+rlog_control_se<-assay(rlog_control)
+
+par(mfrow=c(1,2))
+plot(rlog_control_se[,18:19], cex=.1, main = "rlog transformed, blind=T", xlim=c(0,18), ylim=c(0,18))
+
+#boxplot for transformed data 
+
+study_colors = c(rep("#440154FF",3),rep("#FDE725FF",15),rep("#31688EFF",22),rep("#35B779FF",12))
+par(cex.axis=0.5) 
+par(mar=c(4,4,1,1))
+norm_boxplot <- boxplot(rlog_control_se, 
+                        PchCex =0.01,
+                        axes=TRUE,
+                        las=2,
+                        col=study_colors, 
+                        outcex=0.35,
+                        main="rlog transformed")
+mtext(expression(paste( plain("normalized counts"))),
+      side=2,line=3,padj=1,at=10,cex=0.75)
+legend("topleft", legend=c("E-MTAB-6011", "GEO:GSE67035", "GEO:GSE83814", "GEO:GSE100097"), 
+               col = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"), 
+               fill = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"),
+               cex = 0.35, 
+               pt.cex = 1)
+
+#cds only
+cds_counts <- subset(rlog_control, grepl("gene:", rownames(rlog_control)))
+cds_counts_se <- assay(cds_counts)
+
+par(cex.axis=0.5) 
+par(mar=c(4,2,1,1))
+norm_boxplot <- boxplot(cds_counts_se, 
+                        PchCex =0.01,
+                        axes=TRUE,
+                        las=2,
+                        col=study_colors, 
+                        outcex=0.35,
+                        main="rlog transformed: cds only")
+legend("topleft", legend=c("E-MTAB-6011", "GEO:GSE67035", "GEO:GSE83814", "GEO:GSE100097"), 
+               col = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"), 
+               fill = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"),
+               cex = 0.35, 
+               pt.cex = 1)
+
+#srna only
+srna_counts <- subset(rlog_control, grepl("putative_sRNA:", rownames(rlog_control)))
+srna_counts_se <- assay(srna_counts)
+
+par(cex.axis=0.5) 
+par(mar=c(4,2,1,1))
+norm_boxplot <- boxplot(srna_counts_se, 
+                        PchCex =0.01,
+                        axes=TRUE,
+                        las=2,
+                        col=study_colors, 
+                        outcex=0.35,
+                        main="rlog transformed: Putative sRNA only")
+legend("topleft", legend=c("E-MTAB-6011", "GEO:GSE67035", "GEO:GSE83814", "GEO:GSE100097"), 
+               col = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"), 
+               fill = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"),
+               cex = 0.35, 
+               pt.cex = 1)
+
+#utr only
+utr_counts <- subset(rlog_control, grepl("putative_UTR:", rownames(rlog_control)))
+utr_counts_se <- assay(utr_counts)
+
+par(cex.axis=0.5) 
+par(mar=c(4,2,1,1))
+norm_boxplot <- boxplot(utr_counts_se, 
+                        PchCex =0.01,
+                        axes=TRUE,
+                        las=2,
+                        col=study_colors, 
+                        outcex=0.35,
+                        main="rlog transformed: Putative UTRs only")
+legend("topleft", legend=c("E-MTAB-6011", "GEO:GSE67035", "GEO:GSE83814", "GEO:GSE100097"), 
+               col = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"), 
+               fill = c("#440154FF","#31688EFF","#FDE725FF","#35B779FF"),
+               cex = 0.35, 
+               pt.cex = 1)
+
+```
+
+Used limma to control batch effect
+
+```{r limma_batchcorr_controls}
+
+library(limma)
+library(dplyr)
+
+#batch effect correction using limma; requirement to define batch effect 
+# read in conditions/sample
+conditions<-read_csv(here("Data/mtb_conditions.txt"))
+
+# read in sample/dataset
+datasets<-read_table(here("Data/dataset_samples.txt"), col_names =F)
+colnames(datasets)<-c("sample", "study")
+conditions$study<-datasets$study
+
+saveRDS(conditions, here("R_data/conditions_study.RData"))
+
+batch.table <- data.frame(study=conditions$study,
+                           condition=control_conditions.df$condition) 
+
+# uses log-expression values for series of samples, and needs design matrix
+limma_rlogc<-removeBatchEffect(x=rlog_control_se,
+                                  batch=batch.table$study,
+                                  batch2=NULL,
+                                  covariates=NULL,
+                              design=model.matrix(~batch.table$condition)) 
+
+
+saveRDS(limma_rlogc, file=here("R_data/limma_rlogc.RData"))
+
+```
+
+Compare with and without batch correction with Limma using hierarchical dendrograms
+
+
+Make hierarchical dendrogram without batch correction:
+
+```{r dendro_no_batch, eval=F}
+
+library(dendextend)
+library(viridis)
+library(readr)
+
+sample_cond <- read_csv(here("Data/mtb_conditions.txt"), col_names=T)
+datasets<-read_table(here("Data/dataset_samples.txt"), col_names =F)
+colnames(datasets)<-c("sample", "study")
+sample_cond$study<-datasets$study
+
+sizeGrWindow(12,9)
+par(cex=0.6)
+par(mar=c(5,6,2,0))
+
+group <-as.factor(sample_cond$study) 
+n_group <- length(unique(group)) 
+toned_down_pal <- c("#FFBF00","#31688EFF","#35B779FF","#CA0020")
+cols <- toned_down_pal    #(n_group)
+col_group <- cols[group] 
+hc_logc <- hclust(dist(t(rlog_control_se)),method="average")
+dend_logc <- as.dendrogram(hc_logc) 
+col_group <- col_group[order.dendrogram(dend_logc)] 
+
+# get the labels:
+dend_labels <- dend_logc %>% labels
+# match labels with conditions in samp_cond, and rearrange rows
+dend_labels_test <- sample_cond[match(dend_labels, sample_cond$sample_names), ] 
+#make sure order is the same
+dend_labels_test$sample_names==dend_labels
+#substitute condition for sample number
+dend_labels_cond <- sample_cond$condition[match(dend_labels, sample_cond$sample_names)] 
+
+par(cex.axis=0.5) 
+par(mar=c(10,2,1,1))
+rlogc_dend <- dend_logc %>% 
+            set("labels_colors", col_group) %>% #change label colors to group
+            set("labels_cex", 1) %>%
+            set("labels", dend_labels_cond) %>%
+            plot(main = "Dendrogram rlog transformed")
+legend("topright", 
+       legend = unique(group), 
+       fill = cols, 
+       cex = 0.75, 
+       pt.cex = 1)
+
+```
+
+With batch correction:
+
+```{r dendrogram_limma_controls, eval=F}
+
+#dendrogram for rlog transformed data with batch correction
+
+library(dendextend)
+library(readr)
+
+limma_rlogc <- readRDS(file=here("R_data/limma_rlogc.RData"))
+sample_cond <- read_csv(here("Data/mtb_conditions.txt"), col_names=T)
+datasets<-read_table(here("Data/dataset_samples.txt"), col_names =F)
+colnames(datasets)<-c("sample", "study")
+sample_cond$study<-datasets$study
+
+sizeGrWindow(12,9)
+par(cex=0.6)
+par(mar=c(5,6,2,0))
+
+group <-as.factor(sample_cond$study) 
+n_group <- length(unique(group)) 
+cols <- toned_down_pal    #(n_group)
+col_group <- cols[group] 
+hc_logc <- hclust(dist(t(limma_rlogc)),method="average")
+dend_logc <- as.dendrogram(hc_logc) 
+col_group <- col_group[order.dendrogram(dend_logc)] 
+
+# get the labels:
+dend_labels <- dend_logc %>% labels
+# match labels with conditions in samp_cond, and rearrange rows
+dend_labels_test <- sample_cond[match(dend_labels, sample_cond$sample_names), ] 
+#make sure order is the same
+dend_labels_test$sample_names==dend_labels
+#substitute condition for sample number
+dend_labels_cond <- sample_cond$condition[match(dend_labels, sample_cond$sample_names)] 
+
+dend_logc %>% set("labels", dend_labels_cond) %>% labels
+
+
+par(cex.axis=0.5) 
+par(mar=c(10,2,1,1))
+limma_rlogc_dend <- dend_logc %>%
+           set("labels_colors", col_group) %>% #change label colors to group
+           set("labels_cex", 0.75) %>%
+           set("labels", dend_labels_cond) %>%
+           plot(main = "Dendrogram rlog transformed and batch corrected")
+legend("topright",
+      legend = unique(group),
+      fill = cols,
+      cex = 0.75,
+      pt.cex = 1)
+
+
+```
+
+Look at PCA plots 
+
+```{r pca_limma_rlogc}
+
+library(viridis)
+
+# make PCA plot for limma batch corrected control set (limma_rlogc)
+
+# load count matrix and conditions df
+countdata <- readRDS(here("R_data/raw_count_matrix.RData"))
+conditions <- readRDS(here("R_data/conditions_study.RData"))
+
+#establishing a custom viridis colour palette
+toned_down_pal <- c("#FFBF00","#31688EFF","#35B779FF","#CA0020")
+
+#generating PCA table 
+PCA.data <- data.frame(row.names=colnames(countdata),
+                               condition=factor(conditions$condition),
+                               dataset=factor(conditions$study))
+      
+PCA.data.plot <- prcomp(t(limma_rlogc))
+pca_rlogc_limma_df <- as.data.frame(PCA.data.plot$x)
+pca_rlogc_limma_df$condition<-PCA.data$condition
+pca_rlogc_limma_df$dataset <-PCA.data$dataset
+summary(PCA.data.plot)
+
+#PCA plot for rlog transformed data 
+limma_rlogc_plot <- ggplot(pca_rlogc_limma_df, aes(x=PC1,y=PC2,color=dataset,shape=condition)) +
+        scale_shape_manual(values = 0:21) + 
+        geom_point(size=3) + 
+        xlab("PC1 (33%)") + 
+        ylab("PC2 (24%)") +
+        scale_color_manual(values = toned_down_pal) + 
+        theme_bw()
+limma_rlogc_plot
+
+# can see clustering of datasets, esp PRJEB65014
+
+#PC 2 and 3
+limma_rlogc_plot23 <- ggplot(pca_rlogc_limma_df,aes(x=PC2,y=PC3,color=dataset,shape=condition)) +
+        scale_shape_manual(values = 0:21) + 
+        geom_point(size=3) + 
+        xlab("PC2 (24%)") + 
+        ylab("PC3 (11%)") + 
+        scale_color_manual(values = toned_down_pal) + 
+        theme_bw()
+limma_rlogc_plot23
+
+#PC 3 and 4
+limma_rlogc_plot34 <- ggplot(pca_rlogc_limma_df, aes(x=PC3,y=PC4,color=dataset,shape=condition)) +
+        scale_shape_manual(values = 0:21) + 
+        geom_point(size=3) + 
+        xlab("PC3 (11%)") + 
+        ylab("PC4 (7%)") + 
+        scale_color_manual(values = toned_down_pal) + 
+        theme_bw()
+limma_rlogc_plot34
+
+```
+
+## 5) Network creation using WGCNA
+
+Determine soft-thresholding power based on scale-free topology model.
+
+```{r network_parameters}
+library(WGCNA)
+analysis=readRDS(here("recount_18_07/R_data/datExpr.RData"))
+#choose a set of soft-thresholding powers
+powers = c(c(1:10), seq(from = 12, to=20, by=2))
+#call the network topology analysis function
+sft = pickSoftThreshold(analysis, powerVector = powers, verbose = 5)
+
+sizeGrWindow(9, 5)
+par(mfrow = c(1,1))
+cex1 = 0.9
+png(here("recount_18_07/Images/scale_free_topology_fit.png"))
+plot(sft$fitIndices[,1], 
+             -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+             xlab="Soft Threshold (power)",
+             ylab="Scale Free Topology Model Fit,signed R^2",
+             type="n",
+             main = paste("Scale independence"))
+text(sft$fitIndices[,1], 
+        -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+        labels=powers,
+        cex=cex1,
+        col="red")
+#R^2 cut-off line
+abline(h=0.80,col="red")
+dev.off()
+        
+#mean connectivity as a function of the soft-thresholding power
+png(here("recount_18_07/Images/mean_conn_power.png"))
+plot(sft$fitIndices[,1], 
+             sft$fitIndices[,5],
+             xlab="Soft Threshold (power)",
+             ylab="Mean Connectivity", 
+             type="n",
+             main = paste("Mean connectivity"))
+text(sft$fitIndices[,1], 
+             sft$fitIndices[,5], 
+             labels=powers, 
+             cex=cex1,
+             col="red")
+dev.off()
+```
+
+
+Create network with the following parameters.
+
+
+```{r coexpression_network, eval=F}
+
+library(WGCNA)
+
+#load normalised/batch corrected expression dataframe
+analysis <- readRDS(here("R_data/datExpr.RData"))
+
+#create coexpression network and identify modules
+net <-blockwiseModules(analysis, 
+                      maxBlockSize = 8000,
+                      corType = "pearson", 
+                      networkType = "signed",
+                      power = 12, 
+                      TOMType = "signed", 
+                      minModuleSize = 25,
+                      reassignThreshold = 0, 
+                      mergeCutHeight = 0.15, #default 
+                      deepSplit = 2, #2 medium sensitivity to splitting 
+                      numericLabels = TRUE,
+                      pamRespectsDendro = FALSE,
+                      verbose = 3)
+summary(net)
+
+#how many modules identified and what colours are (represented by numbers)
+module.table <- table(net$colors)  #this creates a 'contingency table' of module membership
+
+# dendrogram 
+sizeGrWindow(12, 9)
+#convert labels to colours for plotting
+mergedColors <- labels2colors(net$colors)
+#plot dendrogram and module colors underneath
+plotDendroAndColors(net$dendrograms[[1]], 
+                    mergedColors[net$blockGenes[[1]]],
+                    "Module colors",
+                    dendroLabels = FALSE, hang = 0.03,
+                    addGuide = TRUE, guideHang = 0.05)
+
+```
+
+Extract and save the module Eigengenes (MEs) from network. Make module dendrogram and clustering tree.
+
+```{r save_mes, eval=F}
+
+library(WGCNA)
+
+analysis <- readRDS(here("R_data/datExpr.RData"))
+#save the module assignment and module eigengene info for subsequent analysis
+# each gene assigned a module number
+moduleLabels = net$colors
+
+#each gene assigned a color
+moduleColors = labels2colors(net$colors)
+
+#save dendrogram data (hclust)
+geneTree = net$dendrograms[[1]];
+
+#recalculate MEs with color labels
+MEs0 <- moduleEigengenes(analysis, moduleColors)$eigengenes
+# reorder MEs so that similar ones are next to each other
+MEs <- orderMEs(MEs0)
+
+# this saves all this info as R object with same object names
+#save(MEs, moduleLabels, moduleColors, geneTree, 
+#     file = here("R_data/TB_modules_network_construction.RData"))
+
+# to re-load modules data (MEs, moduleLabels, moduleColors, geneTree)
+#load(here("R_data/TB_modules_network_construction.RData"))
+
+table(moduleColors)
+s<-as.data.frame(table(moduleColors), row.names = NULL,
+              responseName = "Freq", stringsAsFactors = TRUE,
+              sep = "", base = list(LETTERS))
+s<-s[order(s$Freq, decreasing = T),]
+s <- s %>% arrange(desc(Freq))
+write_tsv(s, file=here("Output/module_sizes.tsv"))
+
+```
+
+
+```{r plot network}
+
+library(WGCNA)
+
+par(mar = c(8, 12, 2, 2))
+par(cex = 3)
+plotEigengeneNetworks(MEs, "Eigengene adjacency heatmap",
+                      marHeatmap = c(3,4,2,2),
+                      plotDendrograms = F,
+                      xLabelsAngle = 90)
+
+#Eigengene clustering using adjacency
+
+# look at pairwise observations (use="p", method="pearson", default)
+sum_conn<-signif(cor(MEs, use="p"), 2)
+# use this to cluster the eigengenes
+dissimME=(1-t(cor(MEs, method="p")))/2 
+hclustdatME=hclust(as.dist(dissimME), method="average" )
+dend <- as.dendrogram(hclustdatME)
+
+#match labels to module colors
+#order of modules in dend
+order <- order.dendrogram(dend)
+col_order <- moduleColors[order]
+labels_colors(dend) <- moduleColors[sort_levels_values(order.dendrogram(dend))]
+lab_factors <- as.factor(labels(dend))
+lab_cols <- moduleColors[lab_factors]
+
+# Plot the eigengene dendrogram
+par(mfrow=c(1,1))
+plot(hclustdatME, main="Clustering tree based on the module eigengenes", cex=0.75)
+
+
+#plot with coloured labels
+par(mar = c(8, 2, 2, 2))
+par(cex=1)
+#change background color
+par(bg = "#f7f8f8")
+plot(dend, main="Clustering tree based on the module eigengenes", horiz=F)
+
+```
+
+
+Figure 3 heatmap with selected traits etc, using scripts/heatmap.R
+
+Trait_df identifies which samples are associated with what traits.
+
+
+```{r bicor_eigengene_correlation, eval=F}
+
+library(WGCNA)
+
+#construction of biweight midcorrelation and fdr corrected significance of module eigengenes and experimental conditions
+# robustY = F because using binary data for this trait
+# "we strongly recommend using the argument maxPOutliers = 0.05 or 0.10 whenever the biweight midcorrelation is used. This argument essentially forces bicor to never regard more than the specified proportion of samples as outliers."
+
+# load trait_df
+trait_df <- readRDS(here("R_data/trait_df.RData"))
+# load MEs, module colours, etc
+load(here("R_data/TB_modules_network_construction.RData"))
+
+
+moduleTraitBicor.data <- bicorAndPvalue(MEs,
+                                trait_df,
+                                maxPOutliers=0.05,
+                                robustY = F)
+# create dataframe of module bicorrelation with trait
+moduleTraitBicor <- moduleTraitBicor.data$bicor
+# create dataframe of p-values for bicor 
+moduleTraitBicorPvalue <- as.data.frame(moduleTraitBicor.data$p)
+
+# fdr for multiple testing applied for each trait
+traitNames<-colnames(trait_df)
+modNames <- substring(colnames(MEs),3)
+# create dataframe for p_adj
+p_adj_bicor<-data.frame(matrix(0, nrow=length(modNames),
+              ncol=length(traitNames)), 
+              row.names = modNames)
+# for each trait find adjusted p-value
+for (i in 1:length(traitNames)){
+    p_adj_bicor[,i]<-p.adjust(moduleTraitBicorPvalue[,i],method="fdr")
+}
+#convert df to matrix
+p_adj_moduleTraitBicorPvalue <- as.matrix(p_adj_bicor)
+
+# make heatmap of module/trait correlations
+# this includes bicor correlation calc / adjusted p-value
+textMatrix <- paste(signif(moduleTraitBicor, 2),
+                             "\n(",
+                             signif(p_adj_moduleTraitBicorPvalue, 1),
+                             ")",
+                             sep = "")
+dim(textMatrix) <- dim(moduleTraitBicor)
+
+###################### heatmap plot ###################################
+
+
+par(mar = c(8, 12, 2, 2))
+        labeledHeatmap(Matrix <- moduleTraitBicor,
+                       xLabels = colnames(trait_df),
+                       yLabels = colnames(MEs),
+                       ySymbols = colnames(MEs),
+                       colorLabels = TRUE,
+                       colors = blueWhiteRed(50),
+                       textMatrix = textMatrix,
+                       setStdMargins = FALSE,
+                       cex.text = 1,
+                       cex.lab.x = 1.5,
+                       cex.lab.y = 0.75,
+                       zlim = c(-1,1),
+                       main = paste("Module-trait relationships FDR adjusted p-values: net"))
+
+new_moduleTraitBicor <- moduleTraitBicor
+for (i in 1:length(colnames(moduleTraitBicor))){
+  index <- p_adj_bicor[,i] > 0.05
+  new_moduleTraitBicor[index,i] <- NA
+}
+
+# #heatmap plot with greyed out non-significant boxes
+
+par(mar = c(8, 12, 2, 2))
+labeledHeatmap(Matrix <- new_moduleTraitBicor,
+               xLabels = colnames(trait_df),
+               yLabels = colnames(MEs),
+               ySymbols = colnames(MEs),
+               colorLabels = TRUE,
+               colors = blueWhiteRed(50),
+               naColor="grey",
+               textMatrix = textMatrix,
+               setStdMargins = FALSE,
+               cex.text = 1,
+               cex.lab.x = 1.5,
+               cex.lab.y = 0.75,
+               zlim = c(-1,1),
+               main = paste("Module-trait relationships FDR adjusted p-values: net"))
+
+# greyed out non-sig boxes AND eliminating conditions with no significant correlations
+# change 'reaerated_culture' to 'reaerated' for ease of reading
+new_x_labels <- colnames(trait_df)
+new_x_labels[6] <- c("reaerated")
+my_cols <- c(4,6,7,8,10,12,14,15)
+my_rows <- c(1:51)  #skip grey row
+par(mar = c(8, 16, 2, 2))
+labeledHeatmap(Matrix <- new_moduleTraitBicor,
+               xLabels = new_x_labels,
+               yLabels = colnames(MEs),
+               ySymbols = colnames(MEs),
+               colorLabels = TRUE,
+               colors = blueWhiteRed(50),  #don't use if using colorMatrix
+               showCols = my_cols,  # numeric vector with indices of cols to be shown
+               #showRows = my_rows,
+               naColor="grey",
+               textMatrix = textMatrix,
+               setStdMargins = FALSE,
+               cex.text = 1,
+               cex.lab.x = 2.5,
+               xLabelsAngle = 0,
+               xLabelsAdj = 0.5,
+               cex.lab.y = 2,
+               zlim = c(-1,1),
+               cex.main = 1.5)
+               #main = paste("Module-trait relationships and FDR adjusted p-values for selected conditions"))
+
+```
+
+Signed eigengene-based connectivity
+
+
+```{r gene_expr_me_cor, eval=F}
+# signed eigengene-based connectivity = module membership for each gene in module
+
+# values are module membership for each gene in each module (how correlated gene is to each module eigengene) 
+
+datKME=signedKME(analysis, MEs, outputColumnName = "MM.", corFnc="bicor",
+                 corOptions = "maxPOutliers=0.05", 
+                 )
+dim(datKME)
+
+#saveRDS(datKME, file= here("R_data/datKME.RData"))
+
+```
+
+Create scatter plots of Gene significance versus module connectivity (using signedKME)
+
+```{r scatter_plots_connectivity, eval=F}
+library(WGCNA)
+# scatter plot of genes (GS for low iron vs module connectivity) using signedKME 
+# as value of module connectivity
+# use abs() of gene significance
+load(here("R_data/TB_modules_network_construction.RData"))
+analysis <- readRDS(here("R_data/datExpr.RData"))
+datKME   <- readRDS(here("R_data/datKME.RData"))
+trait_df <- readRDS(here("R_data/trait_df.Rdata"))
+
+# calculate Gene significance for trait
+
+trait_n = "exponential"
+# select which samples associated with trait
+y = trait_df %>% select(all_of(trait_n))
+# determine gene significance to trait 
+GS_trait<-as.numeric(bicor(analysis, y, maxPOutliers=0.05, 
+                              robustY = FALSE, use="p", pearsonFallback = "i"))
+# absolute value of gene significance
+trait_GS<-abs(GS_trait)
+#sizeGrWindow(8,6)
+
+#choose which modules to evaluate
+exponential <- c("yellow", "turquoise", "midnightblue", "plum1")
+
+par(mfrow=c(2,2))
+par(mar = c(2,4,2,1))
+
+#for (i in 1:nrow(sig_trait_mods_df)){
+for (i in 1:length(exponential)){
+  whichmodule = exponential[i]
+  col_name <- paste("MM.", whichmodule, sep="")
+  col_n = match(col_name, colnames(datKME));
+  # genes for this module
+  restrict1 <- (moduleColors==whichmodule);
+
+  verboseScatterplot(datKME[restrict1, col_n],
+                   trait_GS[restrict1],
+                   corFnc = "bicor",
+                   col=moduleColors[restrict1],
+                   main=whichmodule, pch=21, bg="grey",
+                   #cex.axis = 0.5, cex.lab = 0.5, cex.main = 0.8,
+                   cex.axis = 1.2, cex.lab = 1, cex.main = 0.8,
+                   xlab = "Connectivity_kME", 
+                   ylab = paste("Gene Significance for", trait_n, sep=" "), 
+                   abline = TRUE)
+}
+
+```
+
+Make dataframe for MM data: Recalculate module membership 
+
+```{r gene_MM.df, message=F}
+
+library(WGCNA)
+
+# load necessary data
+
+load(here("R_data/TB_modules_network_construction.RData"))
+analysis <- readRDS(here("R_data/datExpr.RData"))
+
+modNames <- substring(colnames(MEs),3) 
+
+# correlation of gene with module (MM values)
+# used different bicor 'options' here than in kme calculation used for scatterplot, could use 'datKME' dataframe instead?
+bicor_calc <- as.data.frame(bicorAndPvalue(analysis, MEs, maxPOutliers = 0.05, 
+                                           pearsonFallback = "i", use="p"))
+# calculation of correlation of gene with module eigengene
+geneModuleMembership <- bicor_calc[.0:54]
+MMPvalue <- bicor_calc[,55:108] 
+names(geneModuleMembership) = paste("MM", modNames, sep="");
+names(MMPvalue) = paste("p.MM", modNames, sep="");
+
+#create new df without GS trait info
+geneModInfo_df <- data.frame(gene_ID = names(analysis),
+                                 moduleColor = moduleColors,
+                                 geneModuleMembership,
+                                 MMPvalue)
+
+saveRDS(geneModInfo_df, here("R_data/geneModInfo.RData"))
+
+```
+
+
+# 6) Proposed name and position prediction of non-coding transcripts
+
+Use scripts to assign predicted name for non-coding 'sRNAs' based on Lamichhane et al, 2013, and type of UTR based on position in genome.
+
+```{r assign_names_geneInfo_dorm, message=FALSE}
+
+source(here("Scripts/utr_assign.R"), local = knitr::knit_global())
+source(here("Scripts/ncrna_assign.R"), local = knitr::knit_global())
+
+geneInfo_df <- readRDS(here("R_data/geneModInfo.RData"))
+# get vector of names from df
+all_genes<-geneInfo_df$gene_ID
+# assign names to utrs and make new df
+all_utrs <- utr_assign(all_genes, 
+                  refseq_name = "AL123456.3",
+                  annot_file  = here("ref_seqs/Mtb_h37rv.ASM19595v2_AL123456.3.gff3"),
+                  tss_file    = here("data/shell_cortes_srna_tss.txt")) 
+# find tss in srnas and make new df
+tss_srna_df <- tss_srnas(all_genes, refseq_name = "AL123456.3",
+                  tss_file    = here("data/shell_cortes_srna_tss.txt"))
+# assign names to srnas and add to df
+all_srnas <- name_srnas(tss_srna_df, refseq_name = "AL123456.3",
+                  annot_file  = here("ref_seqs/Mtb_h37rv.ASM19595v2_AL123456.3.gff3"))
+
+#saveRDS(all_utrs, here("R_data/utr_df.Rdata"))
+#saveRDS(all_srnas, here("R_data/srna_df.Rdata"))
+
+# join utr df with geneInfo_df
+# bind utr and srna names together
+all_utrs_names <- all_utrs %>% select(pred_utr, utr) %>% 
+                    dplyr::rename(pred_name = utr) %>%
+                    dplyr::rename(pred_ncrna = pred_utr)
+all_srnas_names <- all_srnas %>% select(pred_srna, srna_name) %>% 
+                    dplyr::rename(pred_name = srna_name) %>%
+                    dplyr::rename(pred_ncrna = pred_srna)
+all_ncrna_names <- rbind(all_utrs_names, all_srnas_names)
+new_geneInfo_df <- left_join(geneInfo_df, all_ncrna_names, 
+                               by = c("gene_ID" = "pred_ncrna"), keep=F)
+new_geneInfo_df <- new_geneInfo_df %>% relocate(pred_name, .after = "gene_ID")
+saveRDS(new_geneInfo_df, here("R_data/complete_geneInfo.RData"))
+
+#example query
+nrow(new_geneInfo_df %>% filter(MMgreen > 0.8))
+#288
+#list srnas
+new_geneInfo_df %>% filter(MMgreen > 0.8 & grepl("putative_sRNA", gene_ID)) %>% select(c(gene_ID, pred_name, moduleColor, MMgreen))
+# interestingly, there are elements assigned to other modules which also have high MM in green. (81)
+new_geneInfo_df %>% filter(moduleColor == "green" & MMgreen > 0.8 & grepl("putative_sRNA", gene_ID)) %>% select(c(gene_ID, pred_name, moduleColor, MMgreen))
+#28 srnas are hubs in green module
+
+```
+
+## 7) Further analysis:
+
+Enrichment of gene groups using hypergeometric tests
+
+```{r enrichment_gene_groups}
+library(exact2x2)
+library(tidyverse)
+geneInfo_df <- readRDS(here("R_data/complete_geneInfo.Rdata"))
+module_sizes <- read_tsv(here("Output", "module_sizes.tsv"), col_names = T)
+  
+carb_transport <- read_lines(here("data/regulons/carb_transport_tb.txt"))
+central_carb   <- read_lines(here("data/regulons/central_carb_metab_tb.txt"))
+chol_cat       <- read_lines(here("data/regulons/cholesterol_cat_tb.txt"))
+mce_operons    <- read_lines(here("data/regulons/mce_operons_tb.txt"))
+mycobactin     <- read_lines(here("data/regulons/mycobactin_TB.txt"))
+mycolipids     <- read_lines(here("data/regulons/mycolipids_TB.txt"))
+RD1_region     <- read_lines(here("data/regulons/RD1_region_TB.txt"))  #ESX-1
+sulfur_cys     <- read_lines(here("data/regulons/sulfur_cys_metab_tb.txt"))
+dosr  <- read_lines(here("data/regulons/DosR_regulon_genes.txt"))
+kstR  <- read_lines(here("data/regulons/kstR_regulon.txt"))
+kstr2 <- read_lines(here("data/regulons/kstR2_regulon.txt"))
+sigK  <- read_lines(here("data/regulons/sigK_genes.txt"), skip=1)
+sigH  <- read_lines(here("data/regulons/sigH_regulon_genes.txt"), skip=1)
+sigF  <- read_lines(here("data/regulons/sigF_regulon_genes.txt"), skip=1)
+pdim  <- read_lines(here("data/regulons/PDIM_genes.txt"), skip=1) 
+trehalose <- read_lines(here("data/regulons/trehalose_TB.txt"))
+phop <- read_lines(here("data/regulons/phoP_genes.txt"), skip=1)
+
+mod_enrich = function(gene_group){
+  module_list <- module_sizes$moduleColors
+  genes_TOT   <- nrow(geneInfo_df %>% dplyr::filter(grepl("gene:Rv", gene_ID)))
+  group_TOT      <- length(gene_group)
+  ft_results  <- as.data.frame(matrix(0, ncol=2, nrow=length(module_list)))
+  for (i in 1:length(module_list)){
+    mod_color <- module_list[i]
+    group_IN  <-  nrow(geneInfo_df %>% dplyr::filter(sub("gene:", "", gene_ID) %in% gene_group) %>%
+                     dplyr::filter(moduleColor==mod_color))
+    group_OUT <- group_TOT - group_IN
+    mod_TOT  <- module_sizes %>% dplyr::filter(moduleColors==mod_color) %>% dplyr::select(Freq) %>% pull()
+    non_group_IN   <- mod_TOT - group_IN
+    non_group_OUT  <- genes_TOT - non_group_IN - group_IN - group_OUT
+    cont_table <- matrix(c(group_IN, non_group_IN, group_OUT, non_group_OUT), nrow=2, ncol=2)
+    #print(cont_table)
+    #ft_1tail <- fisher.test(cont_table, alternative="greater")
+    ft_1tail <- exact2x2(cont_table, alternative="greater", midp=TRUE)
+    ft_results[i,] <- c(mod_color, ft_1tail$p.value)
+  }
+  colnames(ft_results) <- c("module", "pval_1tail")
+  #ft_results %>% arrange(pval)
+  ft_results$adj_pval <- as.numeric(p.adjust(ft_results$pval_1tail, "fdr"))
+  ft_results %>% arrange(adj_pval)
+}
+
+mod_enrich(carb_transport) #none
+mod_enrich(central_carb)  #lightyellow	0.009109796	
+mod_enrich(chol_cat)  #royalblue	9.507733e-26	
+mod_enrich(mce_operons)  #midnight blue not quite signif
+mod_enrich(mycobactin)  #grey60	1.227710e-17	
+mod_enrich(RD1_region)  #none 
+mod_enrich(sulfur_cys)  #none
+mod_enrich(dosr)  #cyan	3.815165e-53	
+#number of dosr genes in module
+nrow(geneInfo_df %>% dplyr::filter(sub("gene:", "", gene_ID) %in% dosr)) #47
+mod_enrich(kstR)  #royalblue	5.066164e-30	
+mod_enrich(kstr2) #none but turquoise not quite signif
+mod_enrich(sigK)  #none
+mod_enrich(sigH)  #green	0.003544034	
+mod_enrich(sigF)  #none
+mod_enrich(pdim)  #none
+mod_enrich(trehalose) #none
+mod_enrich(phop) #none
+
+```
+
+# Transcription factors?
+Other txn factors? are they enriched in any particular module (or a few in any particular module?) Using study by Rustad, 2014 (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4249609/)
+
+```{r transcription factors}
+library(dplyr)
+library(exact2x2)
+
+geneInfo_df <- readRDS(here("R_data/complete_geneInfo.Rdata"))
+module_sizes <- read_tsv(here("Output", "module_sizes.tsv"), col_names = T)
+txn_factors <- read_lines(here("data/txn_factors_rustad.txt"),skip=3)
+#213
+tf_res <- geneInfo_df %>% dplyr::filter(sub("gene:", "", gene_ID) %in% txn_factors)
+table(tf_res$moduleColor)
+tf_res %>% group_by(moduleColor) %>% tally() %>% arrange(desc(n))
+
+#turquoise has 52, blue has 37, magenta has 10, brown has 8
+
+#check for statistical enrichment
+
+mod_enrich = function(gene_group){
+  module_list <- module_sizes$moduleColors
+  genes_TOT   <- nrow(geneInfo_df %>% dplyr::filter(grepl("gene:Rv", gene_ID)))
+  group_TOT   <- length(gene_group)
+  ft_results  <- as.data.frame(matrix(0, ncol=2, nrow=length(module_list)))
+  for (i in 1:length(module_list)){
+    mod_color <- module_list[i]
+    group_IN  <-  nrow(geneInfo_df %>% dplyr::filter(sub("gene:", "", gene_ID) %in% gene_group)
+                       %>% dplyr::filter(moduleColor==mod_color))
+    group_OUT <- group_TOT - group_IN
+    mod_TOT  <- module_sizes %>% dplyr::filter(moduleColors==mod_color) %>% 
+                      select(Freq) %>% pull()
+    non_group_IN   <- mod_TOT - group_IN
+    non_group_OUT  <- genes_TOT - non_group_IN - group_IN - group_OUT
+    cont_table <- matrix(c(group_IN, non_group_IN, group_OUT, non_group_OUT), nrow=2, ncol=2)
+    #print(cont_table)
+    #ft_1tail <- fisher.test(cont_table, alternative="greater")
+    ft_1tail <- exact2x2(cont_table, alternative="greater", midp=TRUE)
+    ft_results[i,] <- c(mod_color, ft_1tail$p.value)
+  }
+  colnames(ft_results) <- c("module", "pval_1tail")
+  #ft_results %>% arrange(pval)
+  ft_results$adj_pval <- as.numeric(p.adjust(ft_results$pval_1tail, "fdr"))
+  ft_results %>% arrange(adj_pval)
+}
+
+mod_enrich(txn_factors)
+
+```
+
+How many genes are captured in modules vs. unassigned (proportion/percentage)
+
+```{r unassigned genes}
+
+geneInfo_df <- readRDS(here("R_data", "complete_geneInfo.Rdata"))
+#grey is unassigned module
+no_unassigned <- nrow(geneInfo_df %>% dplyr::filter(moduleColor=="grey"))
+#46
+total <- nrow(geneInfo_df)
+46/7046
+#0.65% unassigned, 99.3% assigned to module
+
+#what types are these?
+grey <- geneInfo_df %>% 
+  dplyr::filter(moduleColor=="grey") %>% 
+  mutate(category = case_when( grepl("gene", gene_ID) ~ "CDS",
+                              grepl("sRNA", gene_ID) ~ "sRNA",
+                              grepl("5UTR", pred_name) ~ "5_UTR",
+                              grepl("3UTR", pred_name) ~ "3_UTR",
+                              grepl("UTR_BTWN", pred_name) ~ "UTR_BTWN"))
+                                      
+grey %>% 
+    group_by(category) %>% 
+    summarise(n_category = n())
+#25 CDS, 7 sRNA, 14 UTRs
+
+```
+
+Grey has 46 genes, 25 CDS, 7 sRNA, 14 UTRs. Represents 0.65% of genes.
+
+Distribution of ncRNAs
+
+```{r ncrna_distribution}
+library(ggplot2)
+library(RColorBrewer)
+
+geneInfo_df <- readRDS(here("R_data/complete_geneInfo.Rdata"))
+
+tot_elements <- nrow(geneInfo_df)
+tot_srnas <- nrow(geneInfo_df %>% dplyr::filter(grepl("putative_sRNA", gene_ID)))
+tot_genes <- nrow(geneInfo_df %>% dplyr::filter(grepl("gene:Rv", gene_ID)))
+tot_utrs  <- nrow(geneInfo_df %>% dplyr::filter(grepl("putative_UTR", gene_ID)))
+tot_ncrnas <- nrow(geneInfo_df %>% dplyr::filter(grepl("gene:EBG", gene_ID)))
+
+#module distribution of sRNAs
+srna_mods <- geneInfo_df %>% dplyr::filter(grepl("putative_sRNA", gene_ID)) %>%
+  select(gene_ID, moduleColor)
+srna_count <- srna_mods %>% group_by(moduleColor) %>%
+  summarise(n_srna= n())
+mod_count <- geneInfo_df %>%
+  dplyr::count(moduleColor, name="n_total")
+dist_data <- left_join(mod_count, srna_count, by="moduleColor") %>% 
+  mutate(prop_module = round(n_srna/n_total, 2)) %>%
+  mutate(prop_total_srnas = round(n_srna/tot_srnas, 2)) %>%
+  mutate(prop_tot_module = round(n_total/tot_elements, 2)) %>%   #7043
+  relocate(prop_tot_module, .after=n_total) %>%
+  relocate(prop_total_srnas, .before=prop_module) %>%
+  arrange(desc(prop_module)) %>%
+  dplyr::mutate(n_srna = replace_na(n_srna, 0))
+
+cds_mods <- geneInfo_df %>% dplyr::filter(grepl("gene:Rv", gene_ID)) %>%
+  select(gene_ID, moduleColor)
+cds_count <- cds_mods %>% group_by(moduleColor) %>%
+  summarise(n_cds= n())
+utr_mods <- geneInfo_df %>% dplyr::filter(grepl("putative_UTR", gene_ID)) %>%
+  select(gene_ID, moduleColor)
+utr_count <- utr_mods %>% group_by(moduleColor) %>%
+  summarise(n_utr= n()) 
+#add in column for number of annotated ncRNAs
+ann_ncrnas_mods <- geneInfo_df %>% dplyr::filter(grepl("gene:EBG", gene_ID)) %>%
+  select(gene_ID, moduleColor)
+ncrna_count <- ann_ncrnas_mods %>% group_by(moduleColor) %>%
+  summarise(n_ncrna= n()) 
+
+type_dist <- left_join(cds_count, utr_count, by="moduleColor") %>%
+  dplyr::mutate(n_utr = replace_na(n_utr, 0))
+type_dist <- left_join(type_dist, ncrna_count, by="moduleColor") %>%
+  dplyr::mutate(n_ncrna = replace_na(n_ncrna, 0))
+type_dist <- left_join(type_dist, srna_count, by = "moduleColor") %>%
+  dplyr::mutate(n_srna = replace_na(n_srna, 0))
+
+#saveRDS(type_dist, here("R_data/type_dist.RData"))
+
+# how many srna compared to utrs and genes
+# make barchart
+# annotated ncRNA will not be included as can't determine utr/srna
+distr_types <- tibble("type" = c("genes", "srnas", "utrs"), "number"=c(tot_genes, tot_srnas, tot_utrs))
+
+ggplot(distr_types, aes(x=type, y=number, fill=type)) +
+  geom_bar(stat="identity") +
+  scale_fill_brewer(palette = "Greens")
+
+```
+
+stacked bar graph that shows proportions (also called a 100% stacked bar graph)
+
+```{r stacked_bar_graph}
+library(ggplot2)
+
+type_dist <- readRDS(here("R_data/type_dist.RData"))
+# order for increasing proportion of srnas
+type_distA <- type_dist %>% mutate(m_sum = rowSums(across(where(is.numeric)))) %>%
+              mutate(prop_srna = n_srna/m_sum) %>%
+              arrange(desc(prop_srna)) %>%
+              mutate(moduleColor = factor(moduleColor, 
+                                          levels = moduleColor[order(prop_srna, decreasing=TRUE)]))
+
+# might be better with increasing size of module?
+
+type_distB <- type_dist %>%
+              mutate(m_sum = rowSums(across(where(is.numeric)))) %>%
+              mutate(moduleColor = factor(moduleColor, 
+                                          levels = moduleColor[order(m_sum)])) 
+  
+types_data <- pivot_longer(type_distB, cols=c(n_cds, n_utr, n_srna), names_to = "type", values_to = "count")
+
+colvec <- as.character(type_distB %>% arrange(m_sum) %>% select(moduleColor) %>% pull())
+
+ggplot(types_data, aes(x = moduleColor, 
+                       y = count, fill = factor(type, levels=c("n_srna", "n_utr", "n_cds")))) +
+  geom_col(position = "fill", color="black") +
+  scale_y_continuous(expand=c(0,0)) +  #if want % instead of proportion
+  scale_fill_brewer(palette = "YlGnBu", labels=c("pred-sRNA", "pred-UTR", "CDS")) +
+  theme_bw() +
+  #theme(axis.text.x = element_text(angle = 60, size=7, hjust=1, face="bold")) +
+  xlab(expression( "Increasing module size" %->% "" )) +
+  theme(legend.title = element_blank(), 
+        axis.text.x = element_text(angle = 60, size=7, hjust=1, face="bold", color=colvec),
+        axis.ticks.x = element_blank(),
+        axis.title.x = element_text(size = 12),
+        plot.background = element_rect(fill = "lightgrey")
+        ) +
+  ylab("Proportion") +
+  ggtitle("Relative proportion of expressed elements in each module") +
+  #, subtitle = "ordered by increasing module size") +
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust=0.5))
+
+# do same plot with all ncRNA together
+types_ncrna <- type_dist %>%
+              mutate(moduleColor = replace(moduleColor, 
+                                           moduleColor==c("turquoise"), c("**turquoise"))) %>% 
+              mutate(moduleColor = replace(moduleColor, moduleColor==c("blue"), c("**blue"))) %>% 
+              mutate(moduleColor = replace(moduleColor, moduleColor==c("skyblue"), c("*skyblue"))) %>% 
+              mutate(tot_ncrna = n_utr + n_ncrna + n_srna) %>%
+              mutate(m_sum = rowSums(across(where(is.numeric)))) %>%
+              mutate(moduleColor = factor(moduleColor, 
+                                          levels = moduleColor[order(m_sum)])) 
+
+types_data <- pivot_longer(types_ncrna, cols=c(n_cds, tot_ncrna), names_to = "type", values_to = "count")
+
+my_cols <- c("tot_ncrna" = "violet", "n_cds" = "gold")
+
+ggplot(types_data, aes(x = moduleColor, 
+                       y = count, fill = factor(type, levels=c("tot_ncrna", "n_cds")))) +
+  geom_col(position = "fill", color="black", size=0.5) +
+  scale_y_continuous(expand=c(0,0)) +  #if want % instead of proportion
+  scale_fill_manual(values = my_cols, labels=c("ncRNA", "CDS")) +
+  theme_bw() +
+  theme(legend.title = element_blank(), 
+
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_line(
+          arrow = grid::arrow(ends = "last", type = "closed"))) +
+  #theme(axis.text.x = element_text(angle = 60, size=7, hjust=1, face="bold")) +
+  ylab("Proportion") + xlab("Increasing module size") +
+  ggtitle("Relative proportion of genome elements in each module") +
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust=0.5))
+
+```
+
+
+Locus-specific co-segregation: plot distribution of 'distance' of genes within a module using sequential locus ids (for CDS). Do some modules contain more co-located genes and do ncRNAs follow same pattern?
+
+do operons segregate together in the modules?
+
+```{r operons}
+library(readxl)
+library(jsonlite)
+
+#genes and modules
+geneInfo_df <- readRDS(here("R_data", "complete_geneInfo.Rdata"))
+
+gene_cols <- geneInfo_df %>% 
+  dplyr::filter(grepl("gene:Rv", gene_ID)) %>%   #genes only, not ncRNA
+  select(gene_ID, moduleColor) %>%
+  mutate(locus = sub("gene:", "", gene_ID)) %>%
+  mutate(locus = str_extract(gene_ID, "Rv\\d{4}"))  #locus only for comparison
+
+operome_db <- read_json(here("data/operomedb_mtb-h37rv.json"))
+#operome_db[[1]]
+operome_db[[1]]$list
+# fix up operome list
+new_op <-lapply(1:length(operome_db),function(i) str_split(unlist(operome_db[[i]]$list),", "))
+operon_list <- lapply(1:length(new_op),function(i) sub("RVBD_", "Rv", unlist(new_op[[i]])))
+operon_list <- lapply(1:length(operon_list), function(i) str_extract(unlist(operon_list[[i]]), "Rv\\d{4}"))
+
+# with operome list
+op_df <- as_tibble(matrix(0, nrow=length(operon_list), ncol=4))
+colnames(op_df) <- c("operon", "genes", "num_genes", "mod_cols")
+op_df$operon    <- lapply(1:length(operon_list),function(i) operon_list[[i]][1])
+op_df$genes     <- lapply(1:length(operon_list),function(i) operon_list[[i]])
+op_df$num_genes <- lapply(1:length(operon_list),function(i) length(operon_list[[i]]))
+for (i in 1:length(operon_list)){
+  col_list  <- NULL
+  for (j in 1:length(operon_list[[i]])){
+      if (operon_list[[i]][j] %in% gene_cols$locus){
+        mod_col <- gene_cols %>% 
+          dplyr::filter(locus==operon_list[[i]][j]) %>%
+          select(moduleColor) %>%
+          pull()
+        col_list <- c(col_list, mod_col)
+      }
+  op_df$mod_cols[i] <- list(col_list)
+  }
+}
+# for the operons, look at proportion of operon in same module
+op_df$max     <- NULL
+op_df$max_col <- NULL
+op_df$prop    <- NULL
+for (i in 1:nrow(op_df)){
+  mod_list      <- unlist(op_df$mod_cols[i])
+  mod_table     <- table(mod_list)
+  if(!is.null(op_df$mod_cols)){
+    op_df$max[i]     <- max(mod_table)
+    op_df$max_col[i] <- list(names(mod_table[mod_table==max(mod_table)]))
+    op_df$prop[i]    <- round(max(mod_table)/length(mod_list),2)
+  }
+}
+# entire operon in one module
+res_total <- op_df %>% dplyr::filter(prop == 1)
+ops <- res_total %>% group_by(max_col) %>% tally() %>% arrange(desc(n))
+View(ops)
+# turquoise has 29 complete predicted operons (highest)
+# brown, green, blue
+
+```
+
+
+Which modules have proportion of close genes (within 3 genes) at 0.3 or above? Can then look at these for enrichment
+
+
+```{r close_gene_enrichment}
+library(dplyr)
+
+#load module list
+dist_data <- readRDS(here("R_data/type_dist.RData"))
+module_list <- dist_data$moduleColor
+
+dist_df <- dist_data
+for (i in 1:nrow(dist_df)){
+  module <- dist_df$moduleColor[i]
+  # extract loci numbers of each cds in module
+  module_loci <- geneInfo_df %>% 
+    dplyr::filter(grepl("gene:Rv", gene_ID)) %>%
+    dplyr::filter(moduleColor==module) %>% 
+    mutate(locus = str_extract(gene_ID, "\\d{4}")) %>%
+    select(locus) %>% 
+    arrange(locus)
+  #calculate distances between loci numbers
+  module_loci$locus <- as.numeric(module_loci$locus)
+  distances <- NULL
+  for (j in 1:nrow(module_loci)-1){
+    distances <- c(distances, module_loci$locus[j+1] - module_loci$locus[j])
+  }
+  #record number of distances
+  dist_df$n_dist[i] <- length(distances)
+  #count number of distances less than 3
+  dist_df$loci_dist_3[i] <- count(distances <3 )
+}
+dist_df
+
+# total number of low distances across modules
+low_TOT <- sum(dist_df %>% select(loci_dist_3) %>% pull())
+# total number of distances across all modules
+dist_TOT  <- sum(dist_df %>% select(n_dist) %>% pull())
+ft_results  <- as.data.frame(matrix(0, ncol=2, nrow=length(dist_df)))
+for (i in 1:nrow(dist_data)){
+    mod_color <- dist_data$moduleColor[i]
+    # total number of low distances across modules
+    low_TOT <- sum(dist_df %>% select(loci_dist_3) %>% pull())
+    # number of low distances in module
+    low_IN  <- dist_df %>% dplyr::filter(moduleColor==mod_color) %>% select(loci_dist_3) %>% pull()
+    # number of low distances out of module
+    low_OUT <- low_TOT - low_IN
+    # total number of distances in module
+    mod_TOT <- dist_df %>% dplyr::filter(moduleColor==mod_color) %>% select(n_dist) %>% pull()
+    # number of high distances in module
+    hi_IN   <- mod_TOT - low_IN
+    # number of high distances out of module
+    hi_OUT  <- dist_TOT - hi_IN - low_IN - low_OUT
+    cont_table <- matrix(c(low_IN, hi_IN, low_OUT, hi_OUT), nrow=2, ncol=2)
+    #print(cont_table)
+    ft_1tail <- fisher.test(cont_table, alternative="greater")
+    #ft <- midp.fisher(cont_table)
+    ft_results[i,] <- c(mod_color, ft_1tail$p.value)
+  }
+colnames(ft_results) <- c("module", "pval_1tail")
+ft_results$adj_pval <- as.numeric(p.adjust(ft_results$pval_1tail, "fdr"))
+ft_results %>% arrange(adj_pval) 
+
+```
+
+Correlation between number of CDS and UTRs
+
+is there a correlation between cds and utr expression? Could just look at whether there is a correlation between number of utrs and number of cds in each module?
+
+```{r cds v utr corr}
+library(ggplot2)
+
+#correlation in number of predicted utrs and number of predicted cds
+dist_data <- readRDS(here("R_data/type_dist.RData"))
+dist_data <- dist_data %>% mutate(n_total=rowSums(across(where(is.numeric))))
+geneInfo_df <- readRDS(here("R_data", "complete_geneInfo.Rdata"))
+
+tot_elements <- nrow(geneInfo_df)
+tot_srnas <- nrow(geneInfo_df %>% dplyr::filter(grepl("putative_sRNA", gene_ID)))
+tot_genes <- nrow(geneInfo_df %>% dplyr::filter(grepl("gene:Rv", gene_ID)))
+tot_utrs  <- nrow(geneInfo_df %>% dplyr::filter(grepl("putative_UTR", gene_ID)))
+
+#plot number of cds vs number of utrs for each module
+ggplot(dist_data, aes(x=n_utr, y=n_cds)) +
+  geom_point(aes(color=moduleColor)) +
+  geom_smooth(method=lm, se=TRUE) +
+  scale_fill_manual(values = dist_data$moduleColor, aesthetics = "color") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, size=7, hjust=1, face="bold")) +
+  geom_text(data=subset(dist_data, n_cds>100 & n_utr>50),
+            aes(n_utr, n_cds, label=moduleColor), nudge_y = -10)
+
+cor.test(dist_data$n_cds, dist_data$n_utr, method="spearman")
+#p-value = 1.871e-11, rho = 0.7636611 
+```
+
+Enrichment of sRNAs in modules (hypergeometric test)
+
+
+
+```{r sRNA enrichment}
+
+library(exact2x2)
+library(dplyr)
+
+dist_data <- readRDS(here("R_data/type_dist.RData"))
+dist_data <- dist_data %>% mutate(n_total=rowSums(across(where(is.numeric))))
+
+module_list <- dist_data$moduleColor
+element_TOT <- nrow(geneInfo_df)
+pred_srna_TOT    <- nrow(geneInfo_df %>% dplyr::filter(grepl("putative_sRNA", gene_ID)))
+ann_TOT     <- nrow(geneInfo_df %>% dplyr::filter(grepl("gene:EBG", gene_ID)))
+srna_TOT    <- pred_srna_TOT + ann_TOT
+srna_results <- as.data.frame(matrix(0, ncol=2, nrow=length(module_list)))
+for (i in 1:length(module_list)){
+  mod_color <- module_list[i]
+  srna_IN  <- dist_data %>% 
+    dplyr::filter(moduleColor==mod_color) %>% 
+    select(n_srna) %>% 
+    pull()     + dist_data %>%
+    dplyr::filter(moduleColor==mod_color) %>% 
+    select(n_ncrna) %>% pull()
+  srna_OUT <- srna_TOT - srna_IN
+  mod_TOT  <- dist_data %>% 
+    dplyr::filter(moduleColor==mod_color) %>% 
+    select(n_total) %>% pull()
+  nonsrna_IN   <- mod_TOT - srna_IN
+  nonsrna_OUT  <- element_TOT - nonsrna_IN - srna_IN - srna_OUT
+  cont_table <- matrix(c(srna_IN, nonsrna_IN, srna_OUT, nonsrna_OUT), nrow=2, ncol=2)
+  ft <- exact2x2(cont_table, alternative="greater")
+  srna_results[i,] <- c(mod_color, ft$p.value)
+}
+colnames(srna_results) <- c("moduleColor", "pval_srna")
+srna_results$adj_pval_srna <- as.numeric(p.adjust(srna_results$pval_srna, "fdr"))
+srna_results %>%
+  arrange(adj_pval_srna)
+
+```
+
+UTR enrichment
+
+```{r utr_enrichment}
+library(exact2x2)
+#UTR enrichment
+module_list <- dist_data$moduleColor
+element_TOT <- nrow(geneInfo_df)
+utr_TOT    <- nrow(geneInfo_df %>% dplyr::filter(grepl("putative_UTR", gene_ID)))
+utr_results <- as.data.frame(matrix(0, ncol=2, nrow=length(module_list)))
+for (i in 1:length(module_list)){
+  mod_color <- module_list[i]
+  utr_IN  <- dist_data %>% dplyr::filter(moduleColor==mod_color) %>% select(n_utr) %>% pull()
+  utr_OUT <- utr_TOT - utr_IN
+  mod_TOT  <- dist_data %>% dplyr::filter(moduleColor==mod_color) %>% select(n_total) %>% pull()
+  nonutr_IN   <- mod_TOT - utr_IN
+  nonutr_OUT  <- element_TOT - nonutr_IN - utr_IN - utr_OUT
+  cont_table <- matrix(c(utr_IN, nonutr_IN, utr_OUT, nonutr_OUT), nrow=2, ncol=2)
+  ft <- exact2x2(cont_table, alternative="greater")
+  utr_results[i,] <- c(mod_color, ft$p.value)
+}
+
+colnames(utr_results) <- c("moduleColor", "pval_utr")
+utr_results$adj_pval_utr <- as.numeric(p.adjust(utr_results$pval_utr, "fdr"))
+utr_results %>% arrange(adj_pval_utr)
+
+# organise into SS
+dist_stats<- left_join(utr_results, dist_data, by="moduleColor")
+dist_stats <- dist_stats %>% select(-c(pval_utr))
+dist_stats <- left_join(srna_results, dist_stats, by="moduleColor")
+dist_stats <- dist_stats %>% select(-c(pval_srna)) %>% arrange(desc(n_total)) %>%
+              relocate(adj_pval_srna, .after=n_srna) %>%
+              relocate(adj_pval_utr, .after=n_utr)
+
+#saveRDS(dist_stats, here("R_data/distribution_elements.RData"))
+#write_excel_csv(dist_stats, here("Output/distribution_elements_modules.csv"))
+
+```
+
+Functional category enrichment
+
+Find enrichment of mycobrowser functional category terms in any module
+
+```{r funcat_enrichment}
+library(exact2x2)
+
+fun_cats <- readRDS(here("R_data/fun_cats.RData"))
+cds_complete <- read_tsv(here("Output/cds_funcats.tsv"))
+funcats <- unlist(unique(fun_cats$Functional_Category))
+
+# look at genes in functional category group in each module
+# iterate for each functional category (10)
+mod_enrich = function(funcat_genes){
+  module_list <- unique(cds_complete$moduleColor)
+  genes_TOT   <- nrow(cds_complete)
+  group_TOT   <- length(funcat_genes)
+  ft_results  <- as.data.frame(matrix(0, ncol=2, nrow=length(module_list)))
+  for (i in 1:length(module_list)){
+    mod_color <- module_list[i]
+    group_IN  <-  nrow(cds_complete %>% 
+            dplyr::filter(moduleColor==mod_color & gene_ID %in% funcat_genes))
+    group_OUT <- group_TOT - group_IN
+    mod_TOT  <- nrow(cds_complete %>% dplyr::filter(moduleColor==mod_color))
+    non_group_IN   <- mod_TOT - group_IN
+    non_group_OUT  <- genes_TOT - non_group_IN - group_IN - group_OUT
+    cont_table <- matrix(c(group_IN, non_group_IN, group_OUT, non_group_OUT), nrow=2, ncol=2)
+    #print(cont_table)
+    #ft_1tail <- fisher.test(cont_table, alternative="greater")
+    ft_1tail <- exact2x2(cont_table, alternative="greater", midp=TRUE)
+    ft_results[i,] <- c(mod_color, ft_1tail$p.value)
+  }
+  colnames(ft_results) <- c("module", "pval_1tail")
+  #ft_results %>% arrange(pval)
+  ft_results$adj_pval <- as.numeric(p.adjust(ft_results$pval_1tail, "fdr"))
+  ft_results %>% arrange(adj_pval)
+}
+enrich_df <- tibble(functional_category=funcats, modules=list(""), adj_pval=list(""))
+for (i in 1:length(funcats)){
+  gene_list <- fun_cats %>% 
+    dplyr::filter(Functional_Category==funcats[i]) %>%
+    dplyr::select(Locus) %>% pull()
+  pval_df <- mod_enrich(gene_list)
+  enrich_df$modules[i] <- list(pval_df %>% dplyr::filter(adj_pval <0.05) %>%
+                                 dplyr::select(module) %>% pull())
+  enrich_df$adj_pval[i] <- list(pval_df %>% dplyr::filter(adj_pval <0.05) %>%
+                                  dplyr::select(adj_pval) %>% pull())
+}
+
+enrich_mods <-unnest(enrich_df, cols=c(modules, adj_pval))
+module_list <- unique(cds_complete$moduleColor)
+
+#read in module summary
+mod_sum <- readRDS(here("R_data/distribution_elements_modules.RData"))
+mods_enriched <- tibble(module_list, fun_cats="")
+for (i in 1:length(module_list)){
+  funcats <- enrich_mods %>% 
+    dplyr::filter(modules==module_list[i]) %>% 
+    dplyr::select(functional_category) %>% pull()
+  if (length(funcats) > 0){
+    mods_enriched$fun_cats[i] <- paste(funcats, collapse=", ") 
+  }else{
+    mods_enriched$fun_cats[i] <- ""
+  }
+}
+#merge with distribution module sheet
+module_sum <- left_join(mod_sum, mods_enriched, by=c("moduleColor"="module_list"))
+View(module_sum)
+#write_tsv(module_sum, here("Output/module_summary.tsv"), col_names = T)
+```
+
+Functional enrichment with David tool
+
+Create text file of CDS genes for each module
+
+```{r gene_lists}
+geneInfo_df <- readRDS(here("R_data/complete_geneInfo.Rdata"))
+module_list <- unique(geneInfo_df$moduleColor)
+write_lines(module_list, here("Output/module_list.txt"))
+for (i in 1:length(module_list)){
+  mod <- module_list[i]
+  gene_list <- geneInfo_df %>% 
+    dplyr::filter(grepl("gene:Rv", gene_ID) & moduleColor==mod) %>%
+    dplyr::select(gene_ID) %>% pull()
+  gene_string <- paste(sub("gene:", "", unlist(gene_list)), collapse=",")
+  out_file <- paste("Output/gene_strings/", mod, ".txt", sep="")
+  write_lines(gene_string, here(out_file))                  
+}
+```
+
+Use iterate_david.py 
+
+```{python iterate_david, eval=F}
+
+#iterate_david.py
+#!/usr/bin python3
+# coding=utf-8
+
+#iterate_david.py
+
+# wrapper script to get gene lists and submit to David web service
+from termClusteringReport import run_termClusteringReport
+from chartReport import get_chartReport
+
+#taxon_id = 83332
+
+with open('module_list.txt', 'r') as f:
+    mod_list = f.read().split('\n')
+for module in mod_list:
+    not_mods = [module !="", module !="grey"]
+    if all(not_mods):
+        mod_file = "gene_strings/" + module + ".txt"
+        with open(mod_file, 'r') as genefile:
+            genes = genefile.read()
+            run_termClusteringReport(module, genes)
+            get_chartReport(module, genes)
+
+print("DONE!")
+
+```
+
+
+Can generate 'gene cluster report' which identifies any gene clusters that are enriched in module.
+
+Can generate 'term cluster report' which will identify any annotation term clusters that are enriched in module. These are clusters of different types of annotation.
+
+36 have geneClusterReports, 48 have termClusterReports
+
+
+```{r gather_annotations}
+library(dplyr)
+library(purrr)
+library(tidyr)
+
+#module summary (also called 'dist_stats')
+mod_sum <- read_csv(here("Output/distribution_elements_modules.csv"))
+
+# chartReports 
+path = here("Output/david_output")
+filenames <- dir(path, pattern="*chartReport.txt")
+mod_names <- unlist(lapply(filenames, function(x) sub("_chartReport.txt", "", x)))
+df1 <- data_frame(module_name=mod_names) %>%
+  mutate(annot_records = map(filenames,          # read files into
+           ~ read_tsv(file.path(path, .), col_names=T)) # a new data column
+        )  
+# get rid of empty lists: returns index of modules with no functional enrichment
+keep <- character()
+for (i in 1:length(mod_names)){
+  if (nrow(df1$annot_records[[i]]) != 0){
+    keep <- c(keep, mod_names[i])
+  }
+}
+df2 <- df1 %>% dplyr::filter(module_name %in% keep)
+# all unnested
+unnest(df2, cols=2)
+# filter for terms with fdr < 0.05
+df2 <- unnest(df2, cols=2) %>% dplyr::filter(Benjamini < 0.01)
+df2
+low <- df2 %>% dplyr::filter(Benjamini < 0.01)
+length(unique(low$module_name))
+#16 with benjamini p-value < 0.01
+
+# save module term enrichment dataframe
+#saveRDS(df2, here("R_data/module_term_enrichment.RData"))
+
+unique(df2$module_name)
+#  16 modules have statistically significant enrichment (p-value < 0.01) for GO-terms (with BH method) (same number have < 0.05)
+
+# separate out COG and GO-BP terms for each module
+cog <- df2 %>% dplyr::filter(Category=="COG_ONTOLOGY") %>%
+  select(module_name, Term) %>%
+  dplyr::rename("COG_term" = "Term")
+
+modules_enriched <- df2 %>% group_by(module_name, Category) %>% summarise(Term=paste(Term,collapse=", "))
+
+#separate term and name into separate columns
+df_sep <- low %>% separate(Term, into=c("term", "name"), sep="~", remove=T)
+
+#first split KEGG into separate rows
+df_KEGG <- df_sep %>% dplyr::filter(grepl("KEGG_PATHWAY", Category)) %>%
+  separate_rows(term,sep = ",") %>%
+  separate(term, into=c("term", "name"), sep=":", remove=T, extra="merge")
+
+# remove KEGG from df_sep and rejoin 
+df_sep <- df_sep %>% dplyr::filter(!grepl("KEGG_PATHWAY", Category))
+df3 <- rbind(df_KEGG, df_sep)
+
+# combine terms and names
+df_4 <- df3 %>% group_by(module_name, Category) %>% summarise(term=paste(term, collapse=", "), name=paste(name,collapse=", "))
+
+unique(df_4$module_name)
+#16 have enrichment of GO terms or KEGG pathways at pval < 0.01
+
+#write_excel_csv(df_4, here("Output/module_term_enrich.csv"), col_names = T)
+
+# filter out kegg and add to funcat sheet 
+kegg_enrich <- df_4 %>% dplyr::filter(Category=="KEGG_PATHWAY")
+saveRDS(kegg_enrich, here("R_data/kegg_enrich_modules.RData"))
+kegg_enrich <- kegg_enrich %>% select(-c(Category))
+
+#filter out go_bp terms
+go_bp <- df_4 %>% dplyr::filter(Category=="GOTERM_BP_FAT") %>%
+  select(module_name, name) %>%
+  dplyr::rename("GO_BP_name" = "name")
+
+mod_sum <- read_tsv(here("Output/module_summary.tsv"), col_names = T)
+test <- left_join(module_sum, kegg_enrich, by=c("moduleColor" = "module_name"))
+test2 <- left_join(test, cog, by=c("moduleColor" = "module_name"))
+test3 <- left_join(test2, go_bp, by=c("moduleColor" = "module_name"))
+#write_tsv(test3, here("Output/module_summary.tsv"), col_names = T)
+
+```
+
+
+Which modules have ncRNa as > 50% of hubs?
+
+```{r hub_prop}
+geneInfo_df <- readRDS(here("R_data/complete_geneInfo.Rdata"))
+mod_cols <- geneInfo_df %>% distinct(moduleColor) %>% pull()
+
+hub_info <- as.data.frame(matrix(0, ncol=8, nrow=length(mod_cols)))
+colnames(hub_info) <- c("mod_color", "total_hubs", "srna_hubs", "utr_hubs", "annot_hubs", "ncRNA_prop", "srna_prop", "utr_prop")
+for (i in 1:length(mod_cols)){
+  mod_col <- mod_cols[i]
+  MM_col  <- as.character(paste("MM", mod_col, sep=""))
+  mod_genes <- geneInfo_df %>% 
+    dplyr::filter(moduleColor == mod_col) %>% select(gene_ID, {MM_col})
+  total_hubs <- mod_genes[mod_genes[,2] > 0.79,]  #don't know why {MM_col} won't work with filter this time but still works with select?
+  srna_hubs  <- total_hubs %>% dplyr::filter(grepl("putative_sRNA", gene_ID))
+  utr_hubs   <- total_hubs %>% dplyr::filter(grepl("putative_UTR", gene_ID))
+  ann_hubs   <- total_hubs %>% dplyr::filter(grepl("gene:EBG", gene_ID))
+  prop_hubs  <- ifelse(nrow(total_hubs) !=0, round((nrow(srna_hubs) + nrow(utr_hubs) + nrow(ann_hubs)) / nrow(total_hubs),2),0)
+  srna_prop <- ifelse(nrow(total_hubs) !=0, round((nrow(srna_hubs) + nrow(ann_hubs))/ nrow(total_hubs), 2), 0)
+  utr_prop  <- ifelse(nrow(total_hubs) !=0, round(nrow(utr_hubs) / nrow(total_hubs),2), 0)
+  hub_info[i,] <- c(mod_col, nrow(total_hubs), nrow(srna_hubs), nrow(utr_hubs), nrow(ann_hubs), prop_hubs, srna_prop, utr_prop)
+}
+View(hub_info)
+hub_info %>% dplyr::filter(ncRNA_prop > 0.49)
+
+#write_excel_csv(hub_info %>% arrange(prop_hubs), here("recount_18_07/Output/hub_info.csv"))
+
+```
+
+# UTRs and genes
+Look at segregation of genes and UTRs into same modules.
+
+Any patterns in how 5'UTRs vs 3'UTRs co-segregate with cognate gene? Enrichment of 3' utrs with any modules? (does it work in trans)
+
+```{r utrs_modules}
+library(dplyr)
+#load data
+#utr_df has start/stop/tss but no module color
+utr_df <- readRDS(here("R_data", "utr_df.Rdata"))
+#pred name includes cognate gene locus name
+geneInfo_df <- readRDS(here("R_data/complete_geneInfo.Rdata")) 
+#select few cols and change geneId to just be Rv
+geneInfo_df_sh <- geneInfo_df %>% select(gene_ID, moduleColor, pred_name) %>%
+  mutate(gene_ID = sub("gene:", "", gene_ID))
+
+UTR_5 <- geneInfo_df %>% dplyr::filter(grepl("5UTR", pred_name)) %>% select( gene_ID, moduleColor, pred_name)
+UTR_5 <- left_join(UTR_5, utr_df, by=c('gene_ID'='pred_utr'))
+UTR_5 <- UTR_5 %>% dplyr::filter(moduleColor !="grey")
+#471 5' utrs
+
+UTR_3 <- geneInfo_df %>% dplyr::filter(grepl("3UTR", pred_name) & moduleColor!="grey") %>% select( gene_ID, moduleColor, pred_name)
+#597
+UTR_3 <- left_join(UTR_3, utr_df, by=c('gene_ID'='pred_utr'))
+
+UTR_btwn <- geneInfo_df %>% dplyr::filter(grepl("UTR_BTWN", pred_name) & moduleColor!="grey") %>% select( gene_ID, moduleColor, pred_name)
+UTR_btwn <- left_join(UTR_btwn, utr_df, by=c('gene_ID'='pred_utr'))
+#633
+
+# do 5' utrs segregate with their downstream gene?
+UTR_5 <- left_join(UTR_5, geneInfo_df_sh, by=c("downstream"="gene_ID"), suffix=c(".utr", ".ds_gene"))
+a<-nrow(UTR_5)
+#471
+b<-nrow(UTR_5 %>% dplyr::filter(moduleColor.utr == moduleColor.ds_gene))
+#173
+b/a
+#37% segregate with ds gene
+
+# what is proportion of utrs with tss that segregate with ds gene?
+nrow(UTR_5 %>% 
+       dplyr::filter(tss !=FALSE))
+#198     (42% have tss)
+# number of 5' utrs with tss that segregate with gene
+nrow(UTR_5 %>% 
+       dplyr::filter(tss !=FALSE) %>%
+       dplyr::filter(moduleColor.utr == moduleColor.ds_gene))
+#85  (43% of utrs with tss segregate with gene, 18% of all 5' utrs have TSS AND segregate with gene)
+utr5_notds <- UTR_5 %>% dplyr::filter(moduleColor.utr != moduleColor.ds_gene)
+#298 do not segregate with ds gene
+
+#do 3' utrs segregate with us gene
+UTR_3 <- left_join(UTR_3, geneInfo_df_sh, by=c("upstream"="gene_ID"), suffix=c(".utr", ".us_gene"))
+c<-nrow(UTR_3)
+#597
+d<-nrow(UTR_3 %>% dplyr::filter(moduleColor.utr == moduleColor.us_gene))
+#254
+utr3_notus <- UTR_3 %>% dplyr::filter(moduleColor.utr != moduleColor.us_gene)
+#343 3' utr not segregating with us gene
+
+# with tss
+nrow(UTR_3 %>% 
+       dplyr::filter(tss !=FALSE))
+#16     very few with tss (16/597, 2.7%)
+nrow(UTR_3 %>% 
+       filter(tss !=FALSE & moduleColor.utr == moduleColor.us_gene))
+#3 with tss also segregate with us gene
+
+#which ones for btwn utrs?
+UTR_btwn <- left_join(UTR_btwn, geneInfo_df_sh, by=c("upstream"="gene_ID"), suffix=c(".utr", ".us_gene"))
+UTR_btwn <- left_join(UTR_btwn, geneInfo_df_sh, by=c("downstream"="gene_ID"))
+e<-nrow(UTR_btwn)
+#633
+#how many have tss
+nrow(UTR_btwn %>% dplyr::filter(tss != FALSE))
+#56 ()
+
+# number of utr_btwn with DS gene
+g<-nrow(UTR_btwn %>% dplyr::filter(moduleColor.utr == moduleColor & moduleColor.utr != moduleColor.us_gene))
+#112 with ds genes only  (18%)
+nrow(UTR_btwn %>% dplyr::filter(tss != FALSE & moduleColor.utr == moduleColor & moduleColor.utr != moduleColor.us_gene))
+#15 with ds genes only and tss (2% both have tss AND with DS gene, 13% of those with DS gene have TSS)
+
+# number of utr_btwn with US genes only
+f<-nrow(UTR_btwn %>% dplyr::filter(moduleColor.utr == moduleColor.us_gene & moduleColor.utr != moduleColor))
+#116 with us genes only (18%)
+
+#with tss with us gene
+nrow(UTR_btwn %>% dplyr::filter(tss != FALSE & moduleColor.utr != moduleColor & moduleColor.utr == moduleColor.us_gene))
+#9  (1.4% with TSS AND US gene, 6% of those with US gene have TSS)
+#9 of 56 with TSS are with us gene
+
+# which ones are with both?
+h<-nrow(UTR_btwn %>% dplyr::filter(moduleColor.utr == moduleColor &
+     moduleColor.utr == moduleColor.us_gene))
+#137 segregating with both us AND ds genes (22%)
+# how many of these have tss?
+nrow(UTR_btwn %>% dplyr::filter(moduleColor.utr == moduleColor &
+     moduleColor.utr == moduleColor.us_gene & tss!=FALSE))
+#9, 6.6% of those with both have TSS
+
+#which ones are with neither
+k <- nrow(UTR_btwn %>% dplyr::filter(moduleColor.utr != moduleColor &
+     moduleColor.utr != moduleColor.us_gene))
+#268
+# NOT with DS/US
+not_ds <-UTR_btwn %>% dplyr::filter(moduleColor.utr != moduleColor)
+not_us <-UTR_btwn %>% dplyr::filter(moduleColor.utr != moduleColor.us_gene)
+not_either <- not_ds %>% dplyr::filter(gene_ID %in% not_us$gene_ID)
+nrow(not_either)
+#268
+
+#with tss not with either gene (the only two with tss don't segregate with either us or ds)
+nrow(UTR_btwn %>% dplyr::filter(tss != FALSE) %>%
+       dplyr::filter(moduleColor.utr != moduleColor &
+     moduleColor.utr != moduleColor.us_gene))
+#21 wth TSS NOT segregating with any gene (11%)
+21/198
+
+#between utrs with tss (57) more or less likely to be with us or ds or neither?
+btwnUTRs_tss <- UTR_btwn %>% dplyr::filter(tss != FALSE)
+#56
+# neither
+nrow(btwnUTRs_tss %>% dplyr::filter(moduleColor.utr != moduleColor &
+     moduleColor.utr != moduleColor.us_gene))
+#21 
+# both
+nrow(btwnUTRs_tss %>% dplyr::filter(moduleColor.utr == moduleColor &
+     moduleColor.utr == moduleColor.us_gene))
+#11
+# us only
+nrow(btwnUTRs_tss %>% dplyr::filter(moduleColor.utr != moduleColor &
+     moduleColor.utr == moduleColor.us_gene))
+#9
+# ds only
+nrow(btwnUTRs_tss %>% dplyr::filter(moduleColor.utr == moduleColor &
+     moduleColor.utr != moduleColor.us_gene))
+#15
+
+UTR_res <- as.data.frame(matrix(0, nrow=1, ncol = 8))
+colnames(UTR_res) <- c("utr5_tot", "utr5_in", "utr3_tot", "utr3_in", "btwn_tot", "btwn_US_in", "btwn_DS_in", "btwn_neither")
+UTR_res[1,] <- c(a,b,c,d,e,f,g,h)
+UTR_res
+
+#make table of 'independent' UTRs that do not segregate with adjacent gene(s). Then cross-check for sORFs
+
+utr3_notus <- utr3_notus %>% dplyr::rename(moduleColor.gene=moduleColor.us_gene, pred_name=pred_name.us_gene)
+utr3_notus<- utr3_notus %>% select(-c(pred_name))
+utr5_notds <- utr5_notds %>% dplyr::rename(moduleColor.gene=moduleColor.ds_gene, pred_name=pred_name.ds_gene)
+utr5_notds <- utr5_notds %>% select(-c(pred_name))
+#join us/ds columns in btwn_utrs
+not_either1 <- not_either %>% unite("moduleColor.gene", moduleColor.us_gene, moduleColor, remove=F, sep="/")
+not_either2 <- not_either1 %>% select(-c(moduleColor.us_gene, moduleColor, pred_name.us_gene, pred_name))
+ind_utrs <- rbind(utr5_notds, utr3_notus, not_either2)
+ind_utrs <- ind_utrs %>% select(-c(utr, downstream_start, dist_to_start, tied))
+ind_utrs[,10] <- as.numeric(ind_utrs[,10])
+
+#add in the MM for appropriate module
+utr_mods <- readRDS(here("R_data/utr_mods_df.Rdata"))
+utr_mods <- utr_mods %>% select(pred_utr, MM)
+test_utrs <- left_join(ind_utrs, utr_mods, by=c("gene_ID" = "pred_utr"))
+ind_utrs <- test_utrs %>% relocate(MM, .before="pred_name.utr") %>% dplyr::rename(MM_utr = MM)
+
+#saveRDS(ind_utrs, here("Output/independent_UTRs.csv"))
+#write_excel_csv(ind_utrs, here("Output/independent_UTRs.csv"), col_names=TRUE)
+
+#number of independent UTRs with MM > 0.8
+ind_utrs %>% filter(MM_utr > 0.79)
+#195
+
+#how many of these have TSS
+ind_utrs %>% filter(MM_utr > 0.79 & !is.na(tss))
+#27
+```
+
+# Antisense RNAs:
+
+How many antisense RNAs have TSSs? Are they in same module as overlapping orf?
+-large numbers of asRNA have TSS in general (43%). 
+
+```{r antisense_srnas}
+library(dplyr)
+
+geneInfo_df <- readRDS(here("R_data/complete_geneInfo.Rdata"))
+srna_df <- readRDS(here("R_data", "srna_mods_df.Rdata"))
+
+as_srnas <- srna_df %>% dplyr::filter(is.na(ov_orf)==F)
+as_srnas2 <- as_srnas %>% dplyr::rename( moduleColor=mod_col)
+as_srnas_df <- left_join(as_srnas2, geneInfo_df, by=c("pred_srna" = "gene_ID")) %>%
+  select(c(1:9))
+as_srnas_df <- as_srnas_df %>% mutate(ov_orf2 = paste("gene:", ov_orf, sep="")) %>% dplyr::rename(moduleColor = moduleColor.x)
+
+as_srnas_df <- left_join(as_srnas_df, geneInfo_df, by=c("ov_orf2" = "gene_ID"), suffix=c(".asRNA", ".ORF")) %>% select(c(1:12))
+#remove all grey module rnas
+as_srnas_df <- as_srnas_df %>% dplyr::filter(moduleColor.asRNA != "grey")
+#1178
+#number that 'coexpress' and end up in same module
+nrow(as_srnas_df %>% dplyr::filter( moduleColor.asRNA==moduleColor.ORF)) / nrow(as_srnas_df)
+#0.05432937
+
+#number with TSSs
+nrow(as_srnas_df %>% dplyr::filter(tss!=FALSE))/ nrow(as_srnas_df)
+#529, 45% have TSS within 20 nt of start    
+
+```
+

@@ -1,0 +1,14 @@
+Gene Cluster 1	EnrichmentScore: 0.6248409232520632
+LOCUS_TAG	Gene Name
+Rv3830c	TetR family transcriptional regulator(Rv3830c)
+Rv1556	HTH-type transcriptional regulator(Rv1556)
+Rv0302	transcriptional regulator(Rv0302)
+Rv0330c	hypothetical protein(Rv0330c)
+Gene Cluster 2	EnrichmentScore: 0.059798088607717376
+LOCUS_TAG	Gene Name
+Rv1028A	membrane protein KdpF(kdpF)
+Rv0970	integral membrane protein(Rv0970)
+Rv2707	hypothetical protein(Rv2707)
+Rv0191	MFS-type transporter(Rv0191)
+Rv0420c	transmembrane protein(Rv0420c)
+Rv0628c	hypothetical protein(Rv0628c)

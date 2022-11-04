@@ -1,0 +1,31 @@
+Gene Cluster 2	EnrichmentScore: 4.541598688264904
+LOCUS_TAG	Gene Name
+Rv3167c	TetR family transcriptional regulator(Rv3167c)
+Rv1395	HTH-type transcriptional regulator(Rv1395)
+Rv0452	transcriptional regulator(Rv0452)
+Rv2912c	TetR family HTH-type transcriptional regulator(Rv2912c)
+Rv3160c	TetR family transcriptional regulator(Rv3160c)
+Rv0328	transcriptional regulator(Rv0328)
+Rv3082c	HTH-type transcriptional regulator VirS(virS)
+Rv0232	transcriptional regulator(Rv0232)
+Rv1255c	HTH-type transcriptional regulator(Rv1255c)
+Rv3405c	HTH-type transcriptional regulator(Rv3405c)
+Gene Cluster 1	EnrichmentScore: 0.4504740927333089
+LOCUS_TAG	Gene Name
+Rv2330c	lipoprotein LppP(lppP)
+Rv2873	cell surface lipoprotein(mpt83)
+Rv1911c	lipoprotein LppC(lppC)
+Rv0847	lipoprotein LpqS(lpqS)
+Gene Cluster 3	EnrichmentScore: 0.01772010182983476
+LOCUS_TAG	Gene Name
+Rv3864	ESX-1 secretion-associated protein EspE(espE)
+Rv0412c	membrane protein(Rv0412c)
+Rv2877c	integral membrane protein(Rv2877c)
+Rv2963	integral membrane protein(Rv2963)
+Rv0589	Mce family protein Mce2A(mce2A)
+Rv0188	transmembrane protein(Rv0188)
+Rv0588	hypothetical protein(Rv0588)
+Rv3453	pseudo(Rv3453)
+Rv2687c	antibiotic ABC transporter permease(Rv2687c)
+Rv0064	transmembrane protein(Rv0064)
+Rv3136A	hypothetical protein(Rv3136A)

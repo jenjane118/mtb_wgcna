@@ -1,0 +1,19 @@
+Gene Cluster 1	EnrichmentScore: 1.3948579618305148
+LOCUS_TAG	Gene Name
+Rv0960	ribonuclease VapC9(vapC9)
+Rv0609	ribonuclease VapC28(vapC28)
+Rv0627	ribonuclease VapC5(vapC5)
+Rv0582	ribonuclease VapC26(vapC26)
+Gene Cluster 2	EnrichmentScore: 0.3165615779921333
+LOCUS_TAG	Gene Name
+Rv1258c	multidrug-efflux transporter(Rv1258c)
+Rv0419	lipoprotein peptidase LpqM(lpqM)
+Rv0779c	transmembrane protein(Rv0779c)
+Rv1249c	membrane protein(Rv1249c)
+Rv1518	hypothetical protein(Rv1518)
+Rv3278c	transmembrane protein(Rv3278c)
+Rv2690c	integral membrane protein(Rv2690c)
+Rv0180c	transmembrane protein(Rv0180c)
+Rv0849	MFS-type transporter(Rv0849)
+Rv0842	integral membrane protein(Rv0842)
+Rv0987	adhesion component ABC transporter permease(Rv0987)

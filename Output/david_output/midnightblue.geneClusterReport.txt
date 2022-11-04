@@ -1,0 +1,24 @@
+Gene Cluster 1	EnrichmentScore: 1.3818309023369162
+LOCUS_TAG	Gene Name
+Rv3148	NADH-quinone oxidoreductase subunit D(nuoD)
+Rv3145	NADH-quinone oxidoreductase subunit A(nuoA)
+Rv3147	NADH-quinone oxidoreductase subunit C(nuoC)
+Rv3146	NADH-quinone oxidoreductase subunit B(nuoB)
+Gene Cluster 2	EnrichmentScore: 0.8106025437901611
+LOCUS_TAG	Gene Name
+Rv0460	hypothetical protein(Rv0460)
+Rv0170	Mce family protein Mce1B(mce1B)
+Rv0171	Mce family protein Mce1C(mce1C)
+Rv3253c	cationic amino acid transport integral membrane protein(Rv3253c)
+Rv0172	Mce family protein Mce1D(mce1D)
+Rv0346c	L-asparagine permease(ansP2)
+Rv0173	Mce family lipoprotein LprK(lprK)
+Rv1401	membrane protein(Rv1401)
+Rv0169	Mce family protein Mce1A(mce1A)
+Rv0174	Mce family protein Mce1F(mce1F)
+Rv1231c	membrane protein(Rv1231c)
+Rv0167	membrane protein(yrbE1A)
+Rv3690	membrane protein(Rv3690)
+Rv3587c	membrane protein(Rv3587c)
+Rv3236c	integral membrane transport protein(Rv3236c)
+Rv0168	membrane protein(yrbE1B)

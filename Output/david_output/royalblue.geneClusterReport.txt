@@ -1,0 +1,13 @@
+Gene Cluster 2	EnrichmentScore: 4.846456609872068
+LOCUS_TAG	Gene Name
+Rv3544c	acyl-CoA dehydrogenase FadE28(fadE28)
+Rv3543c	acyl-CoA dehydrogenase FadE29(fadE29)
+Rv3573c	acyl-CoA dehydrogenase FadE34(fadE34)
+Rv3504	acyl-CoA dehydrogenase FadE26(fadE26)
+Gene Cluster 1	EnrichmentScore: 1.4260844643904844
+LOCUS_TAG	Gene Name
+Rv3574	HTH-type transcriptional regulator KstR(kstR)
+Rv0825c	hypothetical protein(Rv0825c)
+Rv1534	transcriptional regulator(Rv1534)
+Rv0135c	transcriptional regulator(Rv0135c)
+Rv0653c	transcriptional regulator(Rv0653c)

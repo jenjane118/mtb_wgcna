@@ -1,0 +1,8 @@
+Gene Cluster 1	EnrichmentScore: 1.073155277308858
+LOCUS_TAG	Gene Name
+Rv3482c	membrane protein(Rv3482c)
+Rv1290c	hypothetical protein(Rv1290c)
+Rv3435c	transmembrane protein(Rv3435c)
+Rv2684	arsenic-transport integral membrane protein ArsA(arsA)
+Rv0633c	hypothetical protein(Rv0633c)
+Rv1140	integral membrane protein(Rv1140)

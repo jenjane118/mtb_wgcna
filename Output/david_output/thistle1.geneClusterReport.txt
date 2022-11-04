@@ -1,0 +1,6 @@
+Gene Cluster 1	EnrichmentScore: 0.6991628889039849
+LOCUS_TAG	Gene Name
+Rv2449c	trans-acting enoyl reductase(Rv2449c)
+Rv0876c	transmembrane protein(Rv0876c)
+Rv0246	integral membrane protein(Rv0246)
+Rv0470A	hypothetical protein(Rv0470A)

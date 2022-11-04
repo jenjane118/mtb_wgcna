@@ -1,0 +1,6 @@
+Gene Cluster 1	EnrichmentScore: 0.2836676976693834
+LOCUS_TAG	Gene Name
+Rv2767c	membrane protein(Rv2767c)
+Rv2209	integral membrane protein(Rv2209)
+Rv2892c	PPE family protein PPE45(PPE45)
+Rv0008c	cell wall synthesis protein CwsA(Rv0008c)

@@ -1,0 +1,17 @@
+Gene Cluster 1	EnrichmentScore: 0.5538186254293661
+LOCUS_TAG	Gene Name
+Rv1481	membrane protein(Rv1481)
+Rv2532c	hypothetical protein(Rv2532c)
+Rv3737	transmembrane protein(Rv3737)
+Rv1111c	hypothetical protein(Rv1111c)
+Rv0497	transmembrane protein(Rv0497)
+Rv3723	transmembrane protein(Rv3723)
+Rv2732c	transmembrane protein(Rv2732c)
+Rv3673c	membrane-anchored thioredoxin-like protein(Rv3673c)
+Rv3104c	transmembrane protein(Rv3104c)
+Rv3277	transmembrane protein(Rv3277)
+Rv2843	hypothetical protein(Rv2843)
+Rv0658c	integral membrane protein(Rv0658c)
+Rv1333	hydrolase(Rv1333)
+Rv3857c	membrane protein(Rv3857c)
+Rv1491c	TVP38/TMEM64 family membrane protein(Rv1491c)
