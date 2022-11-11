@@ -5,9 +5,9 @@
 library(WGCNA)
 
 # load trait_df
-trait_df <- readRDS(here("WGCNA_12_2021/R_data/trait_df.RData"))
+trait_df <- readRDS(here("R_data/trait_df.RData"))
 # load MEs, module colours, etc
-load(here("WGCNA_12_2021/R_data/TB_modules_network_construction.RData"))
+load(here("R_data/TB_modules_network_construction.RData"))
 
 
 moduleTraitBicor.data <- bicorAndPvalue(MEs,
@@ -57,7 +57,7 @@ for (i in 1:length(colnames(moduleTraitBicor))){
 
 
 # #heatmap plot with greyed out non-significant boxes
-png(here("WGCNA_12_2021/Images/labeled_heatmap_grey.png"), width = 2400, height = 1920)
+#png(here("Images/labeled_heatmap_grey.png"), width = 2400, height = 1920)
 par(mar = c(8, 12, 2, 2))
 labeledHeatmap(Matrix <- new_moduleTraitBicor,
                xLabels = colnames(trait_df),
@@ -75,13 +75,13 @@ labeledHeatmap(Matrix <- new_moduleTraitBicor,
                cex.lab.y = 0.75,
                zlim = c(-1,1),
                main = paste("Module-trait relationships FDR adjusted p-values: net"))
-dev.off()
+#dev.off()
 
 
 # greyed out non-sig boxes AND eliminating conditions with no significant correlations
 
 my_cols <- c(4,5,6,7,12,14,15)
-png(here("WGCNA_12_2021/Images/heatmap_grey_selected.png"), width = 1200, height = 1920)
+#png(here("Images/heatmap_grey_selected.png"), width = 1200, height = 1920)
 par(mar = c(8, 12, 2, 2))
 labeledHeatmap(Matrix <- new_moduleTraitBicor,
                xLabels = colnames(trait_df),
@@ -99,7 +99,7 @@ labeledHeatmap(Matrix <- new_moduleTraitBicor,
                cex.lab.y = 0.75,
                zlim = c(-1,1),
                main = paste("Module-trait relationships and FDR adjusted p-values for selected conditions"))
-dev.off()
+#dev.off()
 
 
 # use plotDendroAndColors() to plot heatmap of traits with dendrogram on side?
@@ -111,7 +111,7 @@ hclustdatME=hclust(as.dist(dissimME), method="average" )
 dend <- as.dendrogram(hclustdatME)
 
 #heatmap with dendrogram
-png(here("WGCNA_12_2021/Images/network_heatmap_dendro.png"), width = 2400, height = 2200)
+#png(here("Images/network_heatmap_dendro.png"), width = 2400, height = 2200)
 par(mar = c(1, 1, 2, 1), mai = c(1.02, 0.82, 0.82, 0.42), cex.main=4)
 heatmap(Matrix <- moduleTraitBicor,
         Rowv = dend,
@@ -124,12 +124,11 @@ heatmap(Matrix <- moduleTraitBicor,
         cexRow = 3,
         margins  = c(20,30),
         main = "Module-trait relationships")
-dev.off()
+#dev.off()
 
 
 # with selected cols and white for non-sig values
-png(here("WGCNA_12_2021/Images/network_heatmap_dendro_select.png"), width = 2400, height = 2200)
-#rect(par("usr")[0],par("usr")[1],par("usr")[0],par("usr")[1],col = "gray")
+#png(here("Images/network_heatmap_dendro_select.png"), width = 2400, height = 2200)
 par(bg="lightgrey")
 par(mar = c(1, 1, 2, 1), mai = c(1.02, 0.82, 0.82, 0.42), cex.main=4)
 heatmap(Matrix <- new_moduleTraitBicor[,my_cols],
@@ -144,6 +143,6 @@ heatmap(Matrix <- new_moduleTraitBicor[,my_cols],
         margins  = c(20,30),
         na.rm = T,
         main = "Module-trait relationships")
-dev.off()
+#dev.off()
 
 

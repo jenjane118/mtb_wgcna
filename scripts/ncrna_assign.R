@@ -12,7 +12,7 @@ tss_srnas <- function(gene_list, refseq_name, tss_file) {
   # gene_list <- all_genes
   # refseq_name = "AL123456.3"
   # annot_file  = here("ref_seqs/Mtb_h37rv.ASM19595v2_AL123456.3.gff3")
-  # tss_file    = here("WGCNA_12_2021/Data/shell_cortes_srna_tss.txt")
+  # tss_file    = here("Data/shell_cortes_srna_tss.txt")
   
   # create grange object of srna coordinates
   # parse list for sRNAs predicted from baerhunter
@@ -114,7 +114,7 @@ name_srnas <- function(srna_df, refseq_name, annot_file){
   
   #test data
   #ref_seq_name = "AL123456.3"
-  #annot_file="~/git/mtb_modules/ref_seqs/Mtb_h37rv.ASM19595v2_AL123456.3.gff3"
+  #annot_file=here("ref_seqs/Mtb_h37rv.ASM19595v2_AL123456.3.gff3")
   #srna_df <- SRNA_df
   
   # read in gff for ref genome (use same one as for BH prediction) as genomic ranges object

@@ -18,7 +18,7 @@ utr_assign <- function(gene_list, refseq_name, annot_file, tss_file) {
   #gene_list = geneInfo_df$gene_ID
   #refseq_name = "AL123456.3"
   #annot_file= here("ref_seqs/Mtb_h37rv.ASM19595v2_AL123456.3.gff3")
-  #tss_file= here("/WGCNA_12_2021/Data/shell_cortes_srna_tss.txt")
+  #tss_file= here("Data/shell_cortes_srna_tss.txt")
   
   # read in gff for ref genome (use same one as for BH prediction) as genomic ranges object
   ref_granges <- import(annot_file)
