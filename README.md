@@ -23,3 +23,5 @@ Network creation with WGCNA
 Determining categories and positions of ncRNA transcripts
 
 Further analysis including functional enrichment
+
+https://doi.org/10.5281/zenodo.7319853
