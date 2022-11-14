@@ -24,4 +24,5 @@ Determining categories and positions of ncRNA transcripts
 
 Further analysis including functional enrichment
 
-https://doi.org/10.5281/zenodo.7319853
+
+https://zenodo.org/badge/DOI/10.5281/zenodo.7319853.svg
