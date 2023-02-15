@@ -10,6 +10,7 @@ The ShinyApp can be run in R directly from the GitHub server.
 The following packages must be installed in the R environment:
 
 ```
+install.pakcages("here")
 install.packages("shiny")
 install.packages("shinyjs")
 install.packages("tidyverse")

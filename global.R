@@ -1,8 +1,12 @@
+library(here)
 library(shinyjs)
 library(tidyverse)
 library(RColorBrewer)
 library(DT)
 library(JBrowseR)
+
+i_am("mtb_wgcna.Rproj")
+
 
 ###############----------------**data**---------------##################
 
