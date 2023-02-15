@@ -31,5 +31,4 @@ source(here("helpers.R"))
 # JBrowseR server for hosting local data files (have to have this running before run app)
 data_server <- serve_data(here("sequences"))
 
-#to stop server
-#data_server$stop_server()
+
