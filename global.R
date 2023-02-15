@@ -21,9 +21,9 @@ srna_df <- readRDS(here("R_data/srna_mods_df.Rdata"))
 cds_df <- readRDS(here("R_data/cds_mods_df.RData"))
 
 # source helper functions
-source(here("shinyapp/helpers.R"))
+source(here("helpers.R"))
 
 
 # JBrowseR server for hosting local data files (have to have this running before run app)
-data_server <- serve_data(here("shinyapp/sequences"))
+data_server <- serve_data(here("sequences"))
 
