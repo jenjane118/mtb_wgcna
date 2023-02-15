@@ -1,28 +1,51 @@
-Using a Whole Genome Co-expression Network to Inform the Functional Characterisation of Predicted Genomic Elements from Mycobacterium tuberculosis Transcriptomic Data
+
+## Using a Whole Genome Co-expression Network to Inform the Functional Characterisation of Predicted Genomic Elements from Mycobacterium tuberculosis Transcriptomic Data
 
 Jennifer J. Stiens, Yen Yi Tan, Rosanna Joyce, Kristine Arnvig, Sharon Kendall, Irilenia Nobeli
 
-Abstract
+The data can be explored using a R ShinyApp. Users can choose a module, transcript or set of genomic coordinates to explore the module associations, associated predicted non-coding RNAs and expression profiles of all of the transcripts analysed in the paper.
+
+The ShinyApp can be run in R directly from the GitHub server.
+
+The following packages must be installed in the R environment:
+
+```
+install.packages("shiny")
+install.packages("shinyjs")
+install.packages("tidyverse")
+install.packages("RColorBrewer")
+install.packages("DT")
+install.packages("JBrowseR")
+
+```
+Run the following code:
+
+```
+library(shiny)
+
+runGitHub("mtb_wgcna", "jenjane118")
+
+```
+
+### Abstract
 
 A whole genome co-expression network was created using Mycobacterium tuberculosis transcriptomic data from publicly available RNA-sequencing experiments covering a wide variety of experimental conditions. The network includes expressed regions with no formal annotation, including putative sRNAs and UTRs, along with the protein-coding genes. Non-coding RNA were among the most well-connected members of the module sub-networks, making up more than half of the ‘hub’ genes in modules that include protein-coding genes known to be part of regulatory systems involved in stress response and host adaptation. This dataset provides a valuable resource for investigating the role of non-coding RNA in transcriptomic remodelling. Based on their connections to genes with known functional groupings and correlations with replicated host conditions, predicted non-coding RNA elements can be screened as suitable candidates for further experimental validation.
 
-The summary and overview of scripts relevant for paper is found in Mtb_wgcna_doc.Rmd
+
+### The summary and overview of scripts relevant for paper is found in Mtb_module_overview.Rmd
 
 Including:
 
-RNA-seq processing and mapping
+1) RNA-seq processing and mapping
 
-Transcript prediction
+2) Transcript prediction
 
-Feature quantification
+3) Feature quantification
 
-Normallisation, transformation and batch correction
+4) Normalisation, transformation and batch correction
 
-Network creation with WGCNA
+5) Network creation with WGCNA
 
-Determining categories and positions of ncRNA transcripts
+6) Determining categories and positions of ncRNA transcripts
 
-Further analysis including functional enrichment
-
-
-https://zenodo.org/badge/DOI/10.5281/zenodo.7319853.svg
+7) Further analysis including functional enrichment
