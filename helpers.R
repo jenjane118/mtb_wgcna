@@ -1,3 +1,6 @@
+# helper functions for shinyapp 'Mtb WGCNA module explorer'
+# author: Jennifer J Stiens
+# email: j.j.stiens@gmail.com
 
 #####jBrowseR functions #######################
 
@@ -24,7 +27,7 @@ default_session <- default_session(
 )
 
 
-#### functions ########
+#### helper functions ########
 
 # find predicted name for putative ncRNA
 ncrna_name <- function(ncrna){

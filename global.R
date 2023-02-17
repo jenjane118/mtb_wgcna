@@ -1,3 +1,7 @@
+# global setup for shinyapp 'Mtb WGCNA module explorer'
+# author: Jennifer J Stiens
+# email: j.j.stiens@gmail.com
+
 library(here)
 library(shinyjs)
 library(tidyverse)
@@ -30,5 +34,5 @@ source(here("helpers.R"))
 
 # JBrowseR server for hosting local data files (have to have this running before run app)
 data_server <- serve_data(here("sequences"))
-
+#data_server$stop_server()
 
