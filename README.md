@@ -7,10 +7,10 @@ The data can be explored using a R ShinyApp. Users can choose a module, transcri
 
 The ShinyApp can be run in R directly from the GitHub server.
 
-The following packages must be installed in the R environment:
+The app was tested on R version 4.0.5 (2021-03-31). The following packages must be installed in the R environment:
 
 ```
-install.pakcages("here")
+install.packages("here")
 install.packages("shiny")
 install.packages("shinyjs")
 install.packages("tidyverse")
