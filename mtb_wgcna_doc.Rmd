@@ -2158,3 +2158,51 @@ nrow(as_srnas_df %>% dplyr::filter(tss!=FALSE))/ nrow(as_srnas_df)
 
 ```
 
+To calculate pairwise correlations between module members and between module hubs and all module members:
+
+```{r pairwise_correlation}
+library(dplyr)
+
+#load expression data
+analysis <- readRDS(here("R_data/datExpr.RData"))
+
+mod_cols <- geneInfo_df %>% 
+  select(moduleColor) %>% 
+  distinct() %>% 
+  pull()
+
+cor_df <- tibble(moduleColor = mod_cols, mod_size=0,
+                 mean_cor = 0, mean_hub_cor = 0)
+for (i in 1:length(mod_cols)){
+  mod           <- mod_cols[i]
+  mod_genes     <- geneInfo_df %>% filter(moduleColor==mod)
+  cor_df$mod_size[i]   <- nrow(mod_genes)
+  mm            <- c(paste("MM", mod, sep=""))
+  #get allows string variable
+  mod_hubs      <- mod_genes %>% filter(get(mm) > 0.79)
+  mod_index     <- match(mod_genes$gene_ID, names(analysis))
+  mod_index_hub <- match(mod_hubs$gene_ID, names(analysis))
+  mm_values     <- mod_genes %>% select(get("mm")) %>% pull()
+  
+  #calculate correlation matrix
+  cor_mod                  <- cor(analysis[,mod_index])
+  cor_df$mean_cor[i]       <- mean(cor_mod)
+  
+  if (length(mod_index_hub) != 0){    #grey will have no hubs
+    cor_hub                <-     cor(analysis[,mod_index_hub],
+                                  analysis[,mod_index])
+    cor_df$mean_hub_cor[i] <- mean(cor_hub)
+  }else{
+    cor_df$mean_hub_cor[i] <- 0
+  }
+}
+
+ggplot(cor_df, aes(x=mean_cor, y=mod_size)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = T)+
+  xlim(0.5, 0.8)
+
+cor_df <- cor_df %>% select(moduleColor, mod_size, mean_cor, mean_hub_cor) %>% arrange(desc(mod_size))
+
+```
+
