@@ -27,15 +27,15 @@ server <- function(input, output) {
   
   # caption for hub table
   tableCaption <- reactive({
-    paste("Hub members (MM>0.70) of ", input$module_color)
+    paste("Members of ", input$module_color, "with MM > ", input$mmSlider)
   })
   # render hubtable caption
   output$tableCaption <- renderText({
     tableCaption()
   })
   make_hublist <- reactive({
-    req(input$module_color)
-    my_dt <- make_hubtable(input$module_color)
+    req(input$module_color, input$mmSlider)
+    my_dt <- make_hubtable(input$module_color, input$mmSlider)
     my_dt %>% select(gene_ID, Name, MM)
   })
   
@@ -48,37 +48,21 @@ server <- function(input, output) {
     )
   )
   
-  # set up event listener on table selection
+  # set up event listener on table selection (not currently used)
   table_selection <- reactive({
     hubTable <- make_hubtable(input$module_color)
     hubTable[input$hubList_rows_selected, ]
   })
   
-  #uses data table input
-  location_module <- reactive({
-    print(table_selection())
-    if (is.na(table_selection()$start[1])) {
-      "AL123456.3:1..500"
-    } else {
-      str_glue(
-        "AL123456.3:",
-        "{table_selection()$start}",
-        "..",
-        "{table_selection()$end}"
-      )
+  #download all 'hubs'
+  output$downloadHubs <- downloadHandler(
+    filename = function(){
+      paste(input$module_color, "_hubs", '.csv', sep='')
+    },
+    content = function(file) {
+      write.csv(make_hublist(), file)
     }
-  })
-  
-  # link the UI with the browser widget
-  output$browserOutput_module <- renderJBrowseR(
-    JBrowseR(
-      "View",
-      assembly = assembly,
-      tracks = tracks,
-      location = location_module(),
-      defaultSession = default_session
-    )
-  )
+  ) 
   
   ###### select transcript ########################
   #input$transcript_locus
@@ -167,7 +151,8 @@ server <- function(input, output) {
   re_ncrnaCaption <- eventReactive( input$go, {
     req(input$transcript_locus)
     type <- test_input(input$transcript_locus)
-    if (type=='ncrna') {
+    ncrna <- c("sRNA", "UTR")
+    if (type %in% ncrna) {
       print("Predicted locus ID:")
     }else{
       NULL
@@ -182,7 +167,8 @@ server <- function(input, output) {
   find_predname <- eventReactive( input$go, {
     req(input$transcript_locus)
     type <- test_input(input$transcript_locus)
-    if (type=='ncrna') {
+    ncrna <- c("sRNA", "UTR")
+    if (type %in% ncrna) {
       ncrna_name(input$transcript_locus)
     }else{
       NULL
@@ -223,6 +209,22 @@ server <- function(input, output) {
     list_utrs()
   })
   
+  #download button for utr table
+  observeEvent(input$transcript_locus, {
+    toggleState("downloadUTRs",
+                condition=input$transcript_locus
+    )
+  })
+  #download table of adjacent UTRs
+  output$downloadUTRs <- downloadHandler(
+    filename = function(){
+      paste('UTRS_', input$transcript_locus, '.csv', sep='')
+    },
+    content = function(file) {
+      write.csv(list_utrs(), file)
+    }
+  ) 
+  
   # make antisense table caption
   caption_as <- eventReactive( input$go, {
     type <- test_input(input$transcript_locus)
@@ -253,6 +255,66 @@ server <- function(input, output) {
     list_as()
   })
 
+  #download button for antisense
+  observeEvent(input$transcript_locus, {
+    toggleState("downloadAntisense",
+                condition=input$transcript_locus
+    )
+  })
+  #download table of antisense
+  output$downloadAntisense <- downloadHandler(
+    filename = function(){
+      paste('antisense_', input$transcript_locus, '.csv', sep='')
+    },
+    content = function(file) {
+      write.csv(list_as(), file)
+    }
+  )
+  
+  # JBrowseR window for transcript input
+  location_transcript <- reactive({
+    req(input$transcript_locus)
+    type = test_input(input$transcript_locus)
+    if (type=='CDS'){
+      buf_start <- cds_df %>% filter(gene_ID==input$transcript_locus) %>%
+        select(start) %>% pull() - 200
+      buf_stop <- cds_df %>% filter(gene_ID==input$transcript_locus) %>%
+        select(end) %>% pull() + 200
+    }else if (type=='sRNA'){
+      buf_start <- srna_df %>% filter(pred_srna==input$transcript_locus) %>%
+        select(start) %>% pull() - 200
+      buf_stop <- srna_df %>% filter(pred_srna==input$transcript_locus) %>%
+        select(stop) %>% pull() + 200
+    }else if (type=='UTR'){
+      buf_start <- utr_df %>% filter(pred_utr==input$transcript_locus) %>%
+        select(start) %>% pull() - 200
+      buf_stop <- utr_df %>% filter(pred_utr==input$transcript_locus) %>%
+        select(stop) %>% pull() + 200
+    }
+    str_glue(
+      "AL123456.3:",
+      "{buf_start}",
+      "..",
+      "{buf_stop}"
+    )
+  })
+  # activate download button only if location function not null
+  observeEvent(list_as(), {
+    toggleState("browserOutput_transcript",
+                condition= !is.null(location_transcript())
+                
+    )
+  })
+  # render JBrowseR widget
+  output$browserOutput_transcript <- renderJBrowseR(
+    JBrowseR(
+      "View",
+      assembly = assembly,
+      tracks = tracks,
+      location = location_transcript(),
+      defaultSession = default_session
+    )
+  )
   
 ########## select coordinates ####################  
   ## input$start, input$end
@@ -270,7 +332,7 @@ server <- function(input, output) {
       need(input$start < input$end, "Start coordinate must be less than end coordinate."),
       )
     srna_df %>% 
-      filter(strand == input$strand & start >= input$start & stop <= input$end) %>%
+      filter(start >= input$start & stop <= input$end) %>%
       select(pred_srna, srna_name, mod_col, MM, ov_orf )
   })
   
@@ -280,7 +342,7 @@ server <- function(input, output) {
       need(input$start < input$end, "Start coordinate must be less than end coordinate.")
     )
     utr_df %>%
-      filter(strand == input$strand & start >= input$start & stop <= input$end) %>%
+      filter(start >= input$start & stop <= input$end) %>%
       select(pred_utr, utr, mod_col, MM, tss)
   })
   
@@ -298,11 +360,13 @@ server <- function(input, output) {
     if (input$start == 1) {
       "AL123456.3:1..500"
     } else {
+      buf_start <- input$start - 200
+      buf_stop <- input$end + 200
       str_glue(
         "AL123456.3:",
-        "{input$start}",
+        "{buf_start}",
         "..",
-        "{input$end}"
+        "{buf_stop}"
       )
     }
   })
@@ -317,6 +381,40 @@ server <- function(input, output) {
       #location = "AL123456.3:1..2500" ,
       defaultSession = default_session
     )
+  )
+
+  #if there are sRNAs...
+  observeEvent(get_srna(), {
+    toggleState("downloadSRNAs",
+                condition=nrow(get_srna()) > 0
+    )
+  })
+  
+  #download table of sRNAs
+  output$downloadSRNAs <- downloadHandler(
+    filename = function(){
+      paste('sRNAs_', input$start, "_", input$end, '.csv', sep='')
+    },
+    content = function(file) {
+      write.csv(get_srna(), file)
+    }
+  )
+  
+  #if there are UTRs...
+  observeEvent(get_utrs(), {
+    toggleState("downloadUTRs_coord",
+                condition=nrow(get_utrs()) > 0
+    )
+  })
+  
+  #download table of UTRs
+  output$downloadUTRs_coord <- downloadHandler(
+    filename = function(){
+      paste('UTRs_', input$start, "_", input$end, '.csv', sep='')
+    },
+    content = function(file) {
+      write.csv(get_utrs(), file)
+    }
   )
   
 } #server  

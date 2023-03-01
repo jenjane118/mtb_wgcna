@@ -52,8 +52,10 @@ test_input <- function(user_input){
   if (user_input %in% tolower(gene_info$gene_ID)){
     if (grepl("rv", user_input)){
       type <- 'CDS'
-    }else if (grepl("putative", user_input)){
-      type <- 'ncrna'
+    }else if (grepl("putative_utr", user_input)){
+      type <- 'UTR'
+    }else if (grepl("putative_srna", user_input)){
+      type <- 'sRNA'
     }else{
       type <- 'annotated'
     }
@@ -64,19 +66,18 @@ test_input <- function(user_input){
 }
 
 # display selectable datatable of hubs
-make_hubtable <- function(module){
-  #mm_name <- paste("MM", module, sep="")
+make_hubtable <- function(module, mm_val){
   cds_table <- cds_df %>% filter(moduleColor==module &
-                                   MM > 0.70) %>%
+                                   MM > mm_val) %>%
     select(gene_ID, Name, start, end, MM) %>%
     mutate_if(is.numeric, ~round(., 2))
   srna_table <- srna_df %>% filter(mod_col==module &
-                                     MM > 0.70) %>%
+                                     MM > mm_val) %>%
     select(pred_srna, srna_name, start, stop, MM) %>%
     mutate_if(is.numeric, ~round(., 2)) %>%
     dplyr::rename(Name=srna_name, gene_ID=pred_srna, end=stop)
   utr_table <- utr_df %>% filter(mod_col==module &
-                                   MM > 0.70) %>%
+                                   MM > mm_val) %>%
     select(pred_utr, utr, start, stop, MM) %>%
     mutate_if(is.numeric, ~round(., 2)) %>%
     dplyr::rename(Name=utr, gene_ID=pred_utr, end=stop)
@@ -84,6 +85,7 @@ make_hubtable <- function(module){
   hub_table <- hub_table %>% arrange(desc(MM))
   return(hub_table)
 }
+
 
 
 #find UTRs adjacent to desired cds

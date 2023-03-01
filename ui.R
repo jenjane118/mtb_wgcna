@@ -39,18 +39,12 @@ ui <- fluidPage(
           br(),
           h5(tableOutput("geneDescr")),
           br(),
-          #radioButtons("visuBtn", NULL, 
-          #          choices = c("Expression Plots" = "plot",
-          #                      "Associated non-coding RNA" = "table")),
           h5(textOutput("ncrnaCaption")),
           h4(textOutput("predName"))
       ), #conditionalPanel transcript
     
       conditionalPanel(
         condition = "input.explore == 'coordinates' ",
-        selectInput("strand", "Strand", 
-                    choices = c("+","-"),
-                    selected = "+"),
         numericInput("start", "Start (rel to + strand)", 
                      value=1, min=1, max=4411532),
         numericInput("end", "Stop", value=10000, min=1, max=4411533)
@@ -66,30 +60,49 @@ ui <- fluidPage(
       #output: if exploring by module
       conditionalPanel(
         condition = "input.explore == 'module' ",
+        #filter by MM
+        sliderInput("mmSlider", "MM filter", 
+                    min=0, max=0.9, value=0.7, step=0.1, round=-1),
         #module output: list of hubs
         h4(textOutput("tableCaption")),
         dataTableOutput("hubList"),
-        JBrowseROutput("browserOutput_module")
-       
+        br(),
+        div(id="dwnbutton", 
+            downloadButton("downloadHubs", "Download")
+        )
       ),  #conditionalPanelmodule
+      
       #output: if exploring by transcript
       conditionalPanel(
         condition = "input.explore == 'transcript' ",
-          h4(textOutput("expr_caption")),
-          plotOutput("exprPlot"),
-          h4(textOutput("caption_utrs")),
-          tableOutput("findUTRs"),
-          h4(textOutput("caption_antisense")),
-          tableOutput("findAntisense")
+        h4(textOutput("expr_caption")),
+        plotOutput("exprPlot"),
+        JBrowseROutput("browserOutput_transcript"),
+        h4(textOutput("caption_utrs")),
+        tableOutput("findUTRs"),
+        div(id="dwnbutton", 
+            downloadButton("downloadUTRs", "Download UTRs")
+        ),
+        h4(textOutput("caption_antisense")),
+        tableOutput("findAntisense"),
+        div(id="dwnbutton", 
+            downloadButton("downloadAntisense", "Download Antisense")
+        )
       ),  #conditionalPanel transcript
       
       #output if exploring by coordinates
       conditionalPanel(
         condition = "input.explore == 'coordinates' ",
+        JBrowseROutput("browserOutput"),
         h3(textOutput("predicted_transcript_caption")),
         tableOutput("srna_table"),
+        div(id="dwnbutton", 
+            downloadButton("downloadSRNAs", "Download sRNAs")
+        ),
         tableOutput("utr_table"),
-        JBrowseROutput("browserOutput")
+        div(id="dwnbutton", 
+            downloadButton("downloadUTRs_coord", "Download UTRs")
+        )
       )#condPanel coordinates
       
     )#mainPanel
