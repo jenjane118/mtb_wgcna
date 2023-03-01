@@ -333,7 +333,7 @@ server <- function(input, output) {
       )
     srna_df %>% 
       filter(start >= input$start & stop <= input$end) %>%
-      select(pred_srna, srna_name, mod_col, MM, ov_orf )
+      select(pred_srna, srna_name, mod_col, MM, ov_orf, tss )
   })
   
   get_utrs <- reactive({
