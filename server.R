@@ -48,10 +48,30 @@ server <- function(input, output) {
     )
   )
   
-  # set up event listener on table selection (not currently used)
+  # set up event listener on table selection (select gene_ID)
   table_selection <- reactive({
-    hubTable <- make_hubtable(input$module_color)
-    hubTable[input$hubList_rows_selected, ]
+    hubList <- make_hublist()
+    hubList[input$hubList_rows_selected, 1]
+  }) 
+ 
+  # observe that row is selected, if row selected, show modal plot as popup
+  observeEvent( input$hubList_rows_selected , {
+    if ( is.null( input$hubList_rows_selected ) ) {
+      removeModal()
+    }else{
+      showModal(modalDialog (
+        plotOutput("popup_plot"),
+        footer = NULL,
+        size = 'm',
+        easyClose = TRUE
+      ))
+    }
+  }, ignoreNULL=F, ignoreInit=T)
+  
+  # render plot for selected transcript
+  output$popup_plot <- renderPlot({
+    transxt <- table_selection()
+    txt_boxplot(transxt)
   })
   
   #download all 'hubs'

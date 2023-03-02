@@ -62,9 +62,11 @@ ui <- fluidPage(
         condition = "input.explore == 'module' ",
         #filter by MM
         sliderInput("mmSlider", "MM filter", 
-                    min=0, max=0.9, value=0.7, step=0.1, round=-1),
+                    min=0, max=0.9, value=0.7, step=0.05, round=-1),
         #module output: list of hubs
         h4(textOutput("tableCaption")),
+        h5("Select row to view expression boxplots"),
+        br(),
         dataTableOutput("hubList"),
         br(),
         div(id="dwnbutton", 

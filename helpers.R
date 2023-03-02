@@ -127,7 +127,8 @@ txt_boxplot <- function(transcript){
       axis.text.y = element_text(face="bold"),
       panel.border = element_blank(),
       legend.position = "none") +
-    ylab("Normalised counts")
+    ylab("Normalised counts") +
+    ggtitle(transcript)
 }
 
 # Return module color (eventually have text in appropriate color)
