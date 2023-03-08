@@ -52,3 +52,5 @@ Including:
 6) Determining categories and positions of ncRNA transcripts
 
 7) Further analysis including functional enrichment
+
+[![DOI](https://zenodo.org/badge/{github_id}.svg)](https://zenodo.org/badge/latestdoi/{github_id})
