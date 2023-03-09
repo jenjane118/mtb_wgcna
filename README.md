@@ -53,4 +53,4 @@ Including:
 
 7) Further analysis including functional enrichment
 
-[![DOI](https://zenodo.org/badge/{github_id}.svg)](https://zenodo.org/badge/latestdoi/{github_id})
+[![DOI](https://zenodo.org/badge/561910977.svg)](https://zenodo.org/badge/latestdoi/561910977)
