@@ -352,7 +352,9 @@ server <- function(input, output) {
       need(input$start < input$end, "Start coordinate must be less than end coordinate."),
       )
     srna_df %>% 
-      filter(start >= input$start & stop <= input$end) %>%
+      #filter(start >= input$start & stop <= input$end) %>%
+      #change so that all transcripts that START within the coordinates are listed
+      filter(start >= input$start & start <= input$end) %>%
       select(pred_srna, srna_name, mod_col, MM, ov_orf, tss )
   })
   
@@ -362,7 +364,8 @@ server <- function(input, output) {
       need(input$start < input$end, "Start coordinate must be less than end coordinate.")
     )
     utr_df %>%
-      filter(start >= input$start & stop <= input$end) %>%
+      #filter(start >= input$start & stop <= input$end) %>%
+      filter(start >= input$start & start <= input$end) %>%
       select(pred_utr, utr, mod_col, MM, tss)
   })
   
