@@ -17,6 +17,7 @@ install.packages("tidyverse")
 install.packages("RColorBrewer")
 install.packages("DT")
 install.packages("JBrowseR")
+install.packages("ivs")
 
 ```
 Run the following code:

@@ -352,7 +352,7 @@ server <- function(input, output) {
       need(input$start < input$end, "Start coordinate must be less than end coordinate."),
       )
     srna_df %>% 
-      filter( between(start, input$start, input$end) ) %>%
+      filter( iv_overlaps(iv(start, stop), iv(input$start, input$end)) ) %>%
       select(pred_srna, srna_name, mod_col, MM, ov_orf, tss )
   })
   
@@ -362,7 +362,7 @@ server <- function(input, output) {
       need(input$start < input$end, "Start coordinate must be less than end coordinate.")
     )
     utr_df %>%
-      filter( between(start, input$start, input$end) ) %>%
+      filter( iv_overlaps(iv(start, stop), iv(input$start, input$end)) ) %>%
       select(pred_utr, utr, mod_col, MM, tss)
   })
   

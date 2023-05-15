@@ -8,6 +8,7 @@ library(tidyverse)
 library(RColorBrewer)
 library(DT)
 library(JBrowseR)
+library(ivs)
 
 i_am("mtb_wgcna.Rproj")
 
